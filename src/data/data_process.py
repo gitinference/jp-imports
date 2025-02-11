@@ -1,5 +1,4 @@
 from .data_pull import DataPull
-from dateutil.relativedelta import relativedelta
 import polars as pl
 import ibis
 import os
