@@ -1,4 +1,5 @@
 from .data_pull import DataPull
+from dateutil.relativedelta import relativedelta
 import polars as pl
 import ibis
 import os
@@ -103,9 +104,7 @@ class DataTrade(DataPull):
             df = df.filter(df["hts_id"].isin(hts_ids))
         elif level == "naics":
             naics_table = self.conn.table("naicstable")
-            df_naics = naics_table.filter(
-                naics_table.naics_code.startswith(level_filter)
-            )
+            df_naics = naics_table.filter(naics_table.naics_code.startswith(level_filter))
             if df_naics.execute().empty:
                 raise ValueError(f"Invalid NAICS code: {level_filter}")
             naics_ids = df_naics["id"]
@@ -113,9 +112,7 @@ class DataTrade(DataPull):
             df = df.filter(df["naics_id"].isin(naics_ids))
         elif level == "country":
             country_table = self.conn.table("countrytable")
-            df_country = country_table.filter(
-                country_table.cty_code.startswith(level_filter)
-            )
+            df_country = country_table.filter(country_table.cty_code.startswith(level_filter))
             if df_country.execute().empty:
                 raise ValueError(f"Invalid Country code: {level_filter}")
             country_ids = df_country["id"]
