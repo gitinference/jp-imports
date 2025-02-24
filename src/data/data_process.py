@@ -202,17 +202,19 @@ class DataTrade(DataPull):
 
         if level == "hts":
             hts_table = self.conn.table("htstable")
-            df_hts = hts_table.filter(hts_table.hts_code.startswith(filter))
+            df_hts = hts_table.filter(hts_table.hts_code.startswith(level_filter))
             if df_hts.execute().empty:
-                raise ValueError(f"Invalid HTS code: {filter}")
+                raise ValueError(f"Invalid HTS code: {level_filter}")
             hts_ids = df_hts["id"]
 
             df = df.filter(df["hts_id"].isin(hts_ids))
         elif level == "country":
             country_table = self.conn.table("countrytable")
-            df_country = country_table.filter(country_table.cty_code.startswith(filter))
+            df_country = country_table.filter(
+                country_table.cty_code.startswith(level_filter)
+            )
             if df_country.execute().empty:
-                raise ValueError(f"Invalid Country code: {filter}")
+                raise ValueError(f"Invalid Country code: {level_filter}")
             country_ids = df_country["id"]
 
             df = df[df["country_id"].isin(country_ids)]
