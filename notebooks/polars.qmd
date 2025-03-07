@@ -31,5 +31,5 @@ dp.conn.sql("SELECT * FROM 'jptradedata';").df()
 ```
 
 ```{python}
-results
+results.select(pl.col("pct_change_imports_year_over_year")).sort("pct_change_imports_year_over_year").filter(~pl.col("pct_change_imports_year_over_year").is_infinite())
 ```
