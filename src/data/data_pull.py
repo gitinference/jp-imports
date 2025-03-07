@@ -152,7 +152,7 @@ class DataPull:
                     "qty_2",
                     "unit_2",
                 )
-            )
+            ).collect()
 
             self.conn.sql("INSERT INTO 'inttradedata' BY NAME SELECT * FROM int_df")
             logging.info("finished inserting data into the database")
@@ -195,63 +195,81 @@ class DataPull:
 
         logging.info("Pulling data from the Puerto Rico Institute of Statistics")
 
-    def insert_int_jp(self, file: str, agr_file: str) -> None:
-        # Prepare to insert to database
-        if not os.path.exists(self.saving_dir + "raw/jp_data.parquet"):
-            self.pull_int_jp()
-        agri_prod = pl.read_json(agr_file).transpose()
-        agri_prod = (
-            agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
-            .to_series()
-            .to_list()
-        )
-        jp_df = pl.scan_parquet(file)
+    def insert_int_jp(self) -> None:
+        if "jptradedata" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
+            init_jp_trade_data_table(self.data_file)
 
-        # Normalize column names
-        jp_df = jp_df.rename(
-            {col: col.lower() for col in jp_df.collect_schema().names()}
-        )
-        jp_df = jp_df.with_columns(
-            date=pl.col("year").cast(pl.String)
-            + "-"
-            + pl.col("month").cast(pl.String)
-            + "-01",
-            unit_1=pl.col("unit_1").str.to_lowercase(),
-            unit_2=pl.col("unit_2").str.to_lowercase(),
-            commodity_code=pl.col("commodity_code").cast(pl.String).str.zfill(10),
-            trade=pl.when(pl.col("trade") == "i").then(1).otherwise(2),
-        ).rename({"trade": "trade_id"})
-
-        jp_df = jp_df.with_columns(pl.col("date").cast(pl.Date))
-
-        jp_df = jp_df.with_columns(
-            sitc=pl.when(pl.col("sitc_short_desc").str.starts_with("Civilian"))
-            .then(9998)
-            .when(pl.col("sitc_short_desc").str.starts_with("-"))
-            .then(9999)
-            .otherwise(pl.col("sitc"))
-        )
-
-        jp_df = jp_df.filter(pl.col("commodity_code").is_not_null())
-        jp_df = jp_df.select(
-            pl.col(
-                "date",
-                "trade_id",
-                "country_id",
-                "sitc_id",
-                "hts_id",
-                "naics_id",
-                "district_id",
-                "unit1_id",
-                "unit2_id",
-                "data",
-                "end_use_i",
-                "end_use_e",
-                "qty_1",
-                "qty_2",
+        if self.conn.sql("SELECT * FROM 'jptradedata';").df().empty:
+            if not os.path.exists(f"{self.saving_dir}raw/jp_data.parquet"):
+                self.pull_int_jp()
+            if not os.path.exists(f"{self.saving_dir}external/code_agr.json"):
+                logging.debug(
+                    "https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json"
+                )
+                self.pull_file(
+                    url="https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json",
+                    filename=(f"{self.saving_dir}external/code_agr.json"),
+                )
+            agri_prod = pl.read_json(
+                f"{self.saving_dir}external/code_agr.json"
+            ).transpose()
+            agri_prod = (
+                agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
+                .to_series()
+                .to_list()
             )
-        )
-        # os.remove(self.saving_dir + "raw/jp_instance.csv")
+            jp_df = pl.read_parquet(f"{self.saving_dir}raw/jp_data.parquet")
+            jp_df = jp_df.rename(
+                {col: col.lower() for col in jp_df.collect_schema().names()}
+            )
+            jp_df = jp_df.with_columns(
+                date=pl.col("year").cast(pl.String)
+                + "-"
+                + pl.col("month").cast(pl.String)
+                + "-01",
+                unit_1=pl.col("unit_1").str.to_lowercase(),
+                unit_2=pl.col("unit_2").str.to_lowercase(),
+                hts_code=pl.col("commodity_code")
+                .cast(pl.String)
+                .str.zfill(10)
+                .str.replace("'", ""),
+                trade_id=pl.when(pl.col("trade") == "i").then(1).otherwise(2),
+            )
+
+            jp_df = jp_df.with_columns(pl.col("date").cast(pl.Date))
+
+            jp_df = jp_df.with_columns(
+                agri_prod=pl.when(pl.col("hts_code").is_in(agri_prod))
+                .then(True)
+                .otherwise(False)
+            )
+            jp_df = jp_df.with_columns(
+                sitc=pl.when(pl.col("sitc_short_desc").str.starts_with("Civilian"))
+                .then(9998)
+                .when(pl.col("sitc_short_desc").str.starts_with("-"))
+                .then(9999)
+                .otherwise(pl.col("sitc"))
+            )
+            jp_df = jp_df.filter(pl.col("hts_code").is_not_null())
+            jp_df = jp_df.select(
+                pl.col(
+                    "date",
+                    "country",
+                    "trade_id",
+                    "agri_prod",
+                    "hts_code",
+                    "hts_desc",
+                    "data",
+                    "qty_1",
+                    "unit_1",
+                    "qty_2",
+                    "unit_2",
+                    "sitc",
+                    "naics",
+                )
+            )
+            self.conn.sql("INSERT INTO 'jptradedata' BY NAME SELECT * FROM jp_df;")
+            logging.info("finished inserting data into the database")
 
     def pull_census_hts(
         self, end_year: int, start_year: int, exports: bool, state: str
