@@ -80,7 +80,7 @@ class DataTrade(DataPull):
             raise ValueError('Invalid time format. Use "date" or "start_date+end_date"')
 
         if agriculture_filter:
-            df = df.filter(pl.col("agri_prod"))
+            df = df.filter(pl.col("agri_prod") == 1)
 
         if level == "hts":
             df = df.filter(pl.col("hts_code").str.starts_with(level_filter))
@@ -159,9 +159,10 @@ class DataTrade(DataPull):
             raise ValueError('Invalid time format. Use "date" or "start_date+end_date"')
 
         if agriculture_filter:
-            df = df.filter(pl.col("agri_prod"))
+            df = df.filter(pl.col("agri_prod") == 1)
 
         if level == "hts":
+            print(df)
             df = df.filter(pl.col("hts_code").str.starts_with(level_filter))
             if df.is_empty():
                 raise ValueError(f"Invalid HTS code: {level_filter}")

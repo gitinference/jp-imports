@@ -17,19 +17,39 @@ import polars as pl
 from src.data.data_process import DataTrade
 
 dp = DataTrade()
-results=dp.process_price()
+# results=dp.process_price()
 ```
 
 ```{python}
-dp.insert_int_org()
-dp.conn.sql("SELECT * FROM 'inttradedata';").df()
+df = dp.insert_int_org()
+# dp.conn.sql("SELECT * FROM 'inttradedata';").df()
 ```
 
 ```{python}
-dp.insert_int_jp()
-dp.conn.sql("SELECT * FROM 'jptradedata';").df()
+dp.process_price(agriculture_filter=True)
 ```
 
 ```{python}
-results.select(pl.col("pct_change_imports_year_over_year")).sort("pct_change_imports_year_over_year").filter(~pl.col("pct_change_imports_year_over_year").is_infinite())
+df = dp.insert_int_org()
+df = df.with_columns(hs4=pl.col("hts_code").str.slice(0, 4))
+df = df.with_columns(
+  agri_prod=pl.when(pl.col("hs4").is_in(agri_prod))
+                .then(1)
+                .otherwise(0))
+df
 ```
+
+```{python}
+agri_prod = pl.read_json(
+    f"data/external/code_agr.json"
+).transpose()
+agri_prod = (
+    agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
+    .to_series()
+    .to_list()
+)
+agri_prod        
+```
+
+
+
