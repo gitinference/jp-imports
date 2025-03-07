@@ -96,7 +96,17 @@ class DataPull:
         if self.conn.sql("SELECT * FROM 'inttradedata'").df().empty:
             if not os.path.exists(f"{self.saving_dir}raw/org_data.parquet"):
                 self.pull_int_org()
-            agri_prod = pl.read_json(f"{self.saving_dir}external/code_agr.json").transpose()
+            if not os.path.exists(f"{self.saving_dir}external/code_agr.json"):
+                logging.debug(
+                    "https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json"
+                )
+                self.pull_file(
+                    url="https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json",
+                    filename=(f"{self.saving_dir}external/code_agr.json"),
+                )
+            agri_prod = pl.read_json(
+                f"{self.saving_dir}external/code_agr.json"
+            ).transpose()
             agri_prod = (
                 agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
                 .to_series()
@@ -113,7 +123,7 @@ class DataPull:
                 + "-01",
                 unit_1=pl.col("unit_1").str.to_lowercase(),
                 unit_2=pl.col("unit_2").str.to_lowercase(),
-                commodity_code=pl.col("hts")
+                hts_code=pl.col("hts")
                 .cast(pl.String)
                 .str.zfill(10)
                 .str.replace("'", ""),
@@ -133,6 +143,7 @@ class DataPull:
                     "date",
                     "country",
                     "trade_id",
+                    "agri_prod",
                     "hts_code",
                     "hts_desc",
                     "data",
@@ -141,7 +152,7 @@ class DataPull:
                     "qty_2",
                     "unit_2",
                 )
-            ).collect()
+            )
 
             self.conn.sql("INSERT INTO 'inttradedata' BY NAME SELECT * FROM int_df")
             logging.info("finished inserting data into the database")
@@ -169,14 +180,6 @@ class DataPull:
                 filename=(self.saving_dir + "external/code_classification.json"),
             )
 
-        if not os.path.exists(self.saving_dir + "external/code_agr.json"):
-            logging.debug(
-                "https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json"
-            )
-            self.pull_file(
-                url="https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json",
-                filename=(self.saving_dir + "external/code_agr.json"),
-            )
         if not os.path.exists(self.saving_dir + "raw/jp_data.parquet") or update:
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
             logging.debug(

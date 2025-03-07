@@ -20,12 +20,11 @@ def init_int_trade_data_table(db_path: str) -> None:
             hts_code TEXT,
             hts_desc TEXT,
             agri_prod BOOLEAN,
-            cty_code TEXT,
-            country_name TEXT,
+            country TEXT,
             data BIGINT DEFAULT 0,
-            unit_1 INTEGER,
+            unit_1 TEXT,
             qty_1 BIGINT DEFAULT 0,
-            unit_2 INTEGER,
+            unit_2 TEXT,
             qty_2 BIGINT DEFAULT 0,
             date TIMESTAMP
         );
@@ -69,3 +68,4 @@ def init_jp_trade_data_table(db_path: str) -> None:
         );
         """
     )
+
