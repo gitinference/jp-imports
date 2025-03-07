@@ -16,18 +16,16 @@ def init_int_trade_data_table(db_path: str) -> None:
     conn.sql(
         """
         CREATE TABLE IF NOT EXISTS "inttradedata" (
-            id INTEGER PRIMARY KEY DEFAULT nextval('int_trade_data_sequence'),
             trade_id INTEGER,
             hts_code TEXT,
-            hts_short_desc TEXT,
-            hts_long_desc TEXT,
-            agri_prod BOOLEAN
+            hts_desc TEXT,
+            agri_prod BOOLEAN,
             cty_code TEXT,
             country_name TEXT,
             data BIGINT DEFAULT 0,
-            unit1_id INTEGER REFERENCES unittable(id),
+            unit_1 INTEGER,
             qty_1 BIGINT DEFAULT 0,
-            unit2_id INTEGER REFERENCES unittable(id),
+            unit_2 INTEGER,
             qty_2 BIGINT DEFAULT 0,
             date TIMESTAMP
         );
@@ -46,7 +44,6 @@ def init_jp_trade_data_table(db_path: str) -> None:
     conn.sql(
         """
         CREATE TABLE IF NOT EXISTS "jptradedata" (
-            id INTEGER PRIMARY KEY DEFAULT nextval('jp_trade_data_sequence'),
             trade_id INTEGER,
             hts_code TEXT,
             hts_short_desc TEXT,

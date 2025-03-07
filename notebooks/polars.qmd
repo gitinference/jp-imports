@@ -14,4 +14,55 @@ os.chdir("..")
 
 ```{python}
 import polars as pl
+from src.data.data_pull import DataPull
+
+dp = DataPull()
+
 ```
+
+```{python}
+int_df = pl.scan_parquet(f"raw/org_data.parquet")
+# int_df = pl.read_parquet("data/raw/org_data.parquet")
+int_df = int_df.rename(
+    {col: col.lower() for col in int_df.collect_schema().names()}
+)
+
+# int_df = int_df.with_columns(
+#     date=pl.col("year").cast(pl.String)
+#     + "-"
+#     + pl.col("month").cast(pl.String)
+#     + "-01",
+#     unit_1=pl.col("unit_1").str.to_lowercase(),
+#     unit_2=pl.col("unit_2").str.to_lowercase(),
+#     hts_code=pl.col("hts")
+#     .cast(pl.String)
+#     .str.zfill(10)
+#     .str.replace("'", ""),
+#     trade_id=pl.when(pl.col("import_export") == "i").then(1).otherwise(2),
+# ).rename({"value": "data"})
+# int_df = int_df.with_columns(agri_prod=pl.when(pl.col("hts_code").is_in(agri_prod))
+#     .then(True).otherwise(False))
+# int_df = int_df.select(
+#     pl.col(
+#         "date",
+#         "country",
+#         "trade_id",
+#         "hts_code",
+#         "hts_desc",
+#         "agri_prod",
+#         "data",
+#         "qty_1",
+#         "unit_1",
+#         "qty_2",
+#         "unit_2",
+#     )
+# )
+int_df.collect()
+```
+
+
+```{python}
+dp.insert_int_org()
+```
+
+```{pl}
