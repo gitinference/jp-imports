@@ -136,9 +136,7 @@ class DataPull:
             int_df = int_df.with_columns(hs4=pl.col("hts_code").str.slice(0, 4))
 
             int_df = int_df.with_columns(
-                agri_prod=pl.when(pl.col("hs4").is_in(agri_prod))
-                .then(1)
-                .otherwise(0)
+                agri_prod=pl.when(pl.col("hs4").is_in(agri_prod)).then(1).otherwise(0)
             )
 
             int_df = int_df.select(
@@ -275,6 +273,7 @@ class DataPull:
             )
             self.conn.sql("INSERT INTO 'jptradedata' BY NAME SELECT * FROM jp_df;")
             logging.info("finished inserting data into the database")
+            return self.conn.sql("SELECT * FROM 'jptradedata';").pl()
         else:
             return self.conn.sql("SELECT * FROM 'jptradedata';").pl()
 
