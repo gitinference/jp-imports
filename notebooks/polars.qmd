@@ -14,10 +14,10 @@ os.chdir("..")
 
 ```{python}
 import polars as pl
-from src.data.data_pull import DataPull
+from src.data.data_process import DataTrade
 
-dp = DataPull()
-
+dp = DataTrade()
+results=dp.process_price()
 ```
 
 ```{python}
@@ -31,31 +31,5 @@ dp.conn.sql("SELECT * FROM 'jptradedata';").df()
 ```
 
 ```{python}
-agri_prod = pl.read_json(
-                f"data/external/code_agr.json"
-            ).transpose()
-agri_prod = (
-    agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
-    .to_series()
-    .to_list()
-)
-jp_df = pl.read_parquet(f"data/raw/jp_data.parquet")
-jp_df = jp_df.rename(
-    {col: col.lower() for col in jp_df.collect_schema().names()}
-)
-jp_df = jp_df.with_columns(
-                date=pl.col("year").cast(pl.String)
-                + "-"
-                + pl.col("month").cast(pl.String)
-                + "-01",
-                unit_1=pl.col("unit_1").str.to_lowercase(),
-                unit_2=pl.col("unit_2").str.to_lowercase(),
-                hts_code=pl.col("commodity_code")
-                .cast(pl.String)
-                .str.zfill(10)
-                .str.replace("'", ""),
-                trade_id=pl.when(pl.col("trade") == "i").then(1).otherwise(2),
-            )
-
-jp_df
+results
 ```
