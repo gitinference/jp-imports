@@ -13,9 +13,14 @@ os.chdir("..")
 
 ```{python}
 import polars as pl
-from src.jp_imports.data_process import DataProcess
-from src.jp_imports.data_pull import DataPull
-d = DataProcess("data/")
+from src.data.data_process import DataTrade
+from src.data.data_pull import DataPull
+d = DataTrade()
+```
+
+```{python}
+d.process_int_org(level="hts", agriculture_filter=True, time_frame="yearly")
+d.process_price(agriculture_filter=True).to_pandas()
 ```
 
 ```{python}

@@ -1,0 +1,35 @@
+---
+title: "Agriculture processing"
+format:
+  html:
+    code-fold: true
+jupyter: python3
+---
+
+```{python}
+import os
+os.chdir("..")
+```
+
+
+```{python}
+import polars as pl
+from src.data.data_process import DataTrade
+
+dp = DataTrade()
+results=dp.process_price()
+```
+
+```{python}
+dp.insert_int_org()
+dp.conn.sql("SELECT * FROM 'inttradedata';").df()
+```
+
+```{python}
+dp.insert_int_jp()
+dp.conn.sql("SELECT * FROM 'jptradedata';").df()
+```
+
+```{python}
+results.select(pl.col("pct_change_imports_year_over_year")).sort("pct_change_imports_year_over_year").filter(~pl.col("pct_change_imports_year_over_year").is_infinite())
+```
