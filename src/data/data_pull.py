@@ -87,7 +87,7 @@ class DataPull:
             "finished extracting data from the Puerto Rico Institute of Statistics"
         )
 
-    def insert_int_org(self) -> None:
+    def insert_int_org(self) -> pl.DataFrame:
         if (
             "inttradedata"
             not in self.conn.sql("SHOW TABLES;").df().get("name").tolist()
@@ -156,7 +156,8 @@ class DataPull:
 
             self.conn.sql("INSERT INTO 'inttradedata' BY NAME SELECT * FROM int_df")
             logging.info("finished inserting data into the database")
-        # return int_df.collect()
+        else:
+            return self.conn.sql("SELECT * FROM 'inttradedata';").pl()
 
     def pull_int_jp(self, update: bool = False) -> None:
         """
@@ -195,7 +196,7 @@ class DataPull:
 
         logging.info("Pulling data from the Puerto Rico Institute of Statistics")
 
-    def insert_int_jp(self) -> None:
+    def insert_int_jp(self) -> pl.DataFrame:
         if "jptradedata" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
             init_jp_trade_data_table(self.data_file)
 
@@ -270,6 +271,8 @@ class DataPull:
             )
             self.conn.sql("INSERT INTO 'jptradedata' BY NAME SELECT * FROM jp_df;")
             logging.info("finished inserting data into the database")
+        else:
+            return self.conn.sql("SELECT * FROM 'jptradedata';").pl()
 
     def pull_census_hts(
         self, end_year: int, start_year: int, exports: bool, state: str
