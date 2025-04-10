@@ -18,5 +18,13 @@ dependencies = [
   "tqdm>=4.67.1",
 ]
 
+[project.scripts]
+jp-imports = "jp_imports:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
 [dependency-groups]
 dev = ["ipykernel>=6.29.5", "jupyter>=1.1.1", "pyvim>=3.0.3"]
