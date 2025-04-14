@@ -51,3 +51,27 @@ def init_jp_trade_data_table(db_path: str) -> None:
         );
         """
     )
+
+
+def init_com_trade_data_table(db_path: str) -> None:
+    conn = get_conn(db_path=db_path)
+    conn.sql(
+        """
+        CREATE TABLE IF NOT EXISTS "comtradetable" (
+            refYear VARCHAR(255),
+            refMonth VARCHAR(255),
+            reporterCode VARCHAR(255),
+            reporterDesc VARCHAR(255),
+            flowCode VARCHAR(255),
+            flowDesc VARCHAR(255),
+            partnerDesc VARCHAR(255),
+            classificationCode VARCHAR(255),
+            cmdCode VARCHAR(255),
+            cmdDesc VARCHAR(255),
+            cifvalue FLOAT,
+            fobvalue FLOAT,
+            primaryValue FLOAT,
+            netWgt DECIMAL(18, 2)
+            );
+        """
+    )

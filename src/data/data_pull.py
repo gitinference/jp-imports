@@ -1,8 +1,9 @@
-from textwrap import indent
+import comtradeapicall
 from ..models import (
     get_conn,
     init_int_trade_data_table,
     init_jp_trade_data_table,
+    init_com_trade_data_table,
 )
 from tqdm import tqdm
 import polars as pl
@@ -276,6 +277,106 @@ class DataPull:
             return self.conn.sql("SELECT * FROM 'jptradedata';").pl()
         else:
             return self.conn.sql("SELECT * FROM 'jptradedata';").pl()
+
+    def pull_comtrade(self, iso: str, trade_id, date, code) -> pl.DataFrame:
+        df = comtradeapicall._previewFinalData(
+            typeCode="C",
+            freqCode="M",
+            clCode="HS",
+            period=date,
+            reporterCode=None,
+            cmdCode=code,
+            flowCode=trade_id,
+            partnerCode=iso,
+            partner2Code=None,
+            customsCode=None,
+            motCode=None,
+            maxRecords=500,
+            format_output="JSON",
+            aggregateBy=None,
+            breakdownMode="classic",
+            countOnly=None,
+            includeDesc=True,
+        )
+        if df.empty:
+            return pl.DataFrame(df)
+
+        df = df[
+            [
+                "refYear",
+                "refMonth",
+                "reporterCode",
+                "reporterDesc",
+                "flowCode",
+                "flowDesc",
+                "partnerDesc",
+                "classificationCode",
+                "cmdCode",
+                "cmdDesc",
+                "cifvalue",
+                "fobvalue",
+                "primaryValue",
+                "netWgt",
+            ]
+        ]
+        df = pl.from_pandas(df).cast(pl.String)
+        return pl.DataFrame(df)
+
+    def insert_comtrade(self):
+        if (
+            "comtradetable"
+            not in self.conn.sql("SHOW TABLES;").df().get("name").tolist()
+        ):
+            init_jp_trade_data_table(self.data_file)
+
+        codes = (
+            self.insert_int_org()
+            .select(pl.col("hts_code").str.slice(0, 2).unique())
+            .to_series()
+            .to_list()
+        )
+        empty_df = [
+            pl.Series("refYear", [], dtype=pl.String),
+            pl.Series("refMonth", [], dtype=pl.String),
+            pl.Series("reporterCode", [], dtype=pl.String),
+            pl.Series("reporterDesc", [], dtype=pl.String),
+            pl.Series("flowCode", [], dtype=pl.String),
+            pl.Series("flowDesc", [], dtype=pl.String),
+            pl.Series("partnerDesc", [], dtype=pl.String),
+            pl.Series("classificationCode", [], dtype=pl.String),
+            pl.Series("cmdCode", [], dtype=pl.String),
+            pl.Series("cmdDesc", [], dtype=pl.String),
+            pl.Series("cifvalue", [], dtype=pl.String),
+            pl.Series("fobvalue", [], dtype=pl.String),
+            pl.Series("primaryValue", [], dtype=pl.String),
+            pl.Series("netWgt", [], dtype=pl.String),
+        ]
+        for year in range(2010, 2025):
+            for month in range(1, 13):
+                master_df = pl.DataFrame(empty_df)
+
+                if year == 2024 and month >= 10:
+                    continue
+                for code in codes:
+                    df = self.pull_comtrade(
+                        "584", "X", f"{year}{str(month).zfill(2)}", code
+                    )
+                    if df.is_empty():
+                        logging.warning(f"Returned None for {year}-{month} for {code}")
+                        continue
+                    elif len(df) == 500:
+                        logging.critical(
+                            f"Error: {year}-{month} {code} returned 500 rows."
+                        )
+                    master_df = pl.concat([master_df, df], how="vertical")
+                    logging.info(
+                        f"Succesfully pulled {len(df)} recordsfor {year}-{month} for {code}"
+                    )
+                self.conn.sql(
+                    "INSERT INTO 'comtradetable' BY NAME SELECT * FROM master_df"
+                )
+                logging.info(f"finished inserting data")
+            return self.conn.sql("SELECT * FROM 'comtradetable';").pl()
 
     def pull_census_hts(
         self, end_year: int, start_year: int, exports: bool, state: str
