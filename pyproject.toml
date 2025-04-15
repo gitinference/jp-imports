@@ -8,10 +8,8 @@ requires-python = "==3.12.*"
 dependencies = [
   "altair[all]>=5.5.0",
   "comtradeapicall>=1.2.1",
-  "ibis-framework[duckdb,geospatial,sqlite]>=10.0.0",
   "pandas>=2.2.3",
   "polars>=1.16.0",
-  "psycopg2-binary>=2.9.10",
   "pyarrow>=19.0.0",
   "pytest>=8.3.4",
   "requests>=2.32.3",
