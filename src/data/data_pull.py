@@ -279,7 +279,7 @@ class DataPull:
             return self.conn.sql("SELECT * FROM 'jptradedata';").pl()
 
     def pull_comtrade(self, iso: str, trade_id, date, code) -> pl.DataFrame:
-        df = comtradeapicall._previewFinalData(
+        df = comtradeapicall.previewFinalData(
             typeCode="C",
             freqCode="M",
             clCode="HS",
@@ -389,7 +389,7 @@ class DataPull:
                     logging.info(
                         f"Succesfully inserted {len(df)} records for {year}-{month} for {code}"
                     )
-            return self.conn.sql("SELECT * FROM 'comtradetable';").pl()
+        return self.conn.sql("SELECT * FROM 'comtradetable';").pl()
 
     def pull_census_hts(
         self, end_year: int, start_year: int, exports: bool, state: str
