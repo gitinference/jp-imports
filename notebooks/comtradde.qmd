@@ -44,16 +44,19 @@ empty_df = [
     pl.Series("netWgt", [], dtype=pl.String),
 ]
 
-
 for year in range(2010, 2025):
     for month in range(1, 13):
         master_df = pl.DataFrame(empty_df)
+
+        # Skip if file already exists
         if os.path.exists(f"data/raw/comtrade_{year}_{month}.csv"):
             continue
+        # Skip if year is 2024 and month is >= 10
         if year == 2024 and month >= 10:
             continue
+
         for code in codes:
-            print(f"pulling data for {year}-{month} and for code {code}")
+            print(f"Pulling data for {year}-{month} and for code {code}")
             mydf = comtradeapicall.previewFinalData(
                 typeCode='C',
                 freqCode='M',
@@ -72,8 +75,8 @@ for year in range(2010, 2025):
                 breakdownMode=None,
                 countOnly=None,
                 includeDesc=True
-
             )
+
             if mydf.empty:
                 print(f"No data returned for {year}-{month}, code: {code}")
                 continue
@@ -85,5 +88,14 @@ for year in range(2010, 2025):
             master_df = pl.concat([master_df, tmp], how="vertical")
             print(f"Processed {year}-{str(month).zfill(2)}, {len(tmp)} rows")
 
+            # Wait for 15 minutes before continuing with the next request
+            print("Waiting for 15 minutes before making the next request...")
+            time.sleep(900) 
+
         master_df.write_csv(f"data/raw/comtrade_{year}_{month}.csv")
+```
+
+
+```{python}
+type(mydf)
 ```

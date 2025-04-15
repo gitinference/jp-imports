@@ -71,7 +71,7 @@ def init_com_trade_data_table(db_path: str) -> None:
             cifvalue FLOAT,
             fobvalue FLOAT,
             primaryValue FLOAT,
-            netWgt DECIMAL(18, 2)
+            netWgt FLOAT
             );
         """
     )

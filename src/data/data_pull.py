@@ -327,7 +327,7 @@ class DataPull:
             "comtradetable"
             not in self.conn.sql("SHOW TABLES;").df().get("name").tolist()
         ):
-            init_jp_trade_data_table(self.data_file)
+            init_com_trade_data_table(self.data_file)
 
         codes = (
             self.insert_int_org()
@@ -335,47 +335,60 @@ class DataPull:
             .to_series()
             .to_list()
         )
-        empty_df = [
-            pl.Series("refYear", [], dtype=pl.String),
-            pl.Series("refMonth", [], dtype=pl.String),
-            pl.Series("reporterCode", [], dtype=pl.String),
-            pl.Series("reporterDesc", [], dtype=pl.String),
-            pl.Series("flowCode", [], dtype=pl.String),
-            pl.Series("flowDesc", [], dtype=pl.String),
-            pl.Series("partnerDesc", [], dtype=pl.String),
-            pl.Series("classificationCode", [], dtype=pl.String),
-            pl.Series("cmdCode", [], dtype=pl.String),
-            pl.Series("cmdDesc", [], dtype=pl.String),
-            pl.Series("cifvalue", [], dtype=pl.String),
-            pl.Series("fobvalue", [], dtype=pl.String),
-            pl.Series("primaryValue", [], dtype=pl.String),
-            pl.Series("netWgt", [], dtype=pl.String),
-        ]
         for year in range(2010, 2025):
             for month in range(1, 13):
-                master_df = pl.DataFrame(empty_df)
-
                 if year == 2024 and month >= 10:
                     continue
                 for code in codes:
+                    if (
+                        not self.conn.sql(
+                            f"SELECT * FROM 'comtradetable' WHERE refYear={year} AND refMonth={month} AND cmdCode={code};"
+                        )
+                        .df()
+                        .empty
+                    ):
+                        continue
                     df = self.pull_comtrade(
                         "584", "X", f"{year}{str(month).zfill(2)}", code
                     )
                     if df.is_empty():
-                        logging.warning(f"Returned None for {year}-{month} for {code}")
+                        dummy_df = pl.DataFrame(
+                            [
+                                pl.Series("refYear", [str(year)], dtype=pl.String),
+                                pl.Series("refMonth", [str(month)], dtype=pl.String),
+                                pl.Series("reporterCode", [""], dtype=pl.String),
+                                pl.Series("reporterDesc", [""], dtype=pl.String),
+                                pl.Series("flowCode", [""], dtype=pl.String),
+                                pl.Series("flowDesc", [""], dtype=pl.String),
+                                pl.Series("partnerDesc", [""], dtype=pl.String),
+                                pl.Series("classificationCode", [""], dtype=pl.String),
+                                pl.Series("cmdCode", [code], dtype=pl.String),
+                                pl.Series("cmdDesc", [""], dtype=pl.String),
+                                pl.Series("cifvalue", [0.0], dtype=pl.Float64),
+                                pl.Series("fobvalue", [0.0], dtype=pl.Float64),
+                                pl.Series("primaryValue", [0.0], dtype=pl.Float64),
+                                pl.Series("netWgt", [0.0], dtype=pl.Float64),
+                            ]
+                        )
+                        self.conn.sql(
+                            "INSERT INTO 'comtradetable' BY NAME SELECT * FROM dummy_df"
+                        )
+
+                        logging.warning(
+                            f"Returned None for {year}-{month} for {code} Inserted dummy records"
+                        )
                         continue
                     elif len(df) == 500:
                         logging.critical(
                             f"Error: {year}-{month} {code} returned 500 rows."
                         )
-                    master_df = pl.concat([master_df, df], how="vertical")
-                    logging.info(
-                        f"Succesfully pulled {len(df)} recordsfor {year}-{month} for {code}"
+
+                    self.conn.sql(
+                        "INSERT INTO 'comtradetable' BY NAME SELECT * FROM df"
                     )
-                self.conn.sql(
-                    "INSERT INTO 'comtradetable' BY NAME SELECT * FROM master_df"
-                )
-                logging.info(f"finished inserting data")
+                    logging.info(
+                        f"Succesfully inserted {len(df)} records for {year}-{month} for {code}"
+                    )
             return self.conn.sql("SELECT * FROM 'comtradetable';").pl()
 
     def pull_census_hts(
