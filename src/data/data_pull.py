@@ -7,6 +7,8 @@ from ..models import (
 )
 from tqdm import tqdm
 import polars as pl
+import pandas as pd
+import datetime
 import requests
 import logging
 import zipfile
@@ -95,7 +97,7 @@ class DataPull:
             not in self.conn.sql("SHOW TABLES;").df().get("name").tolist()
         ):
             init_int_trade_data_table(self.data_file)
-        if self.conn.sql("SELECT * FROM 'inttradedata'").df().empty:
+        if self.conn.sql("SELECT * FROM 'inttradedata';").df().empty:
             if not os.path.exists(f"{self.saving_dir}raw/org_data.parquet"):
                 self.pull_int_org()
             if not os.path.exists(f"{self.saving_dir}external/code_agr.json"):
@@ -156,7 +158,7 @@ class DataPull:
                 )
             ).collect()
 
-            self.conn.sql("INSERT INTO 'inttradedata' BY NAME SELECT * FROM int_df")
+            self.conn.sql("INSERT INTO 'inttradedata' BY NAME SELECT * FROM int_df;")
             logging.info("finished inserting data into the database")
             return self.conn.sql("SELECT * FROM 'inttradedata';").pl()
         else:
@@ -301,28 +303,10 @@ class DataPull:
         if df.empty:
             return pl.DataFrame(df)
 
-        df = df[
-            [
-                "refYear",
-                "refMonth",
-                "reporterCode",
-                "reporterDesc",
-                "flowCode",
-                "flowDesc",
-                "partnerDesc",
-                "classificationCode",
-                "cmdCode",
-                "cmdDesc",
-                "cifvalue",
-                "fobvalue",
-                "primaryValue",
-                "netWgt",
-            ]
-        ]
         df = pl.from_pandas(df).cast(pl.String)
         return pl.DataFrame(df)
 
-    def insert_comtrade(self):
+    def insert_comtrade(self, iso: str):
         if (
             "comtradetable"
             not in self.conn.sql("SHOW TABLES;").df().get("name").tolist()
@@ -335,59 +319,98 @@ class DataPull:
             .to_series()
             .to_list()
         )
-        for year in range(2010, 2025):
+        for year in range(2010, datetime.date.today().year + 1):
             for month in range(1, 13):
-                if year == 2024 and month >= 10:
-                    continue
                 for code in codes:
                     if (
                         not self.conn.sql(
-                            f"SELECT * FROM 'comtradetable' WHERE refYear={year} AND refMonth={month} AND cmdCode={code};"
+                            f"SELECT * FROM 'comtradetable' WHERE refYear={year} AND refMonth={month} AND cmdCode={code} AND partnerCode={iso};"
                         )
                         .df()
                         .empty
                     ):
                         continue
                     df = self.pull_comtrade(
-                        "584", "X", f"{year}{str(month).zfill(2)}", code
+                        iso, "X", f"{year}{str(month).zfill(2)}", code
                     )
                     if df.is_empty():
                         dummy_df = pl.DataFrame(
                             [
+                                pl.Series("typeCode", [""], dtype=pl.String),
+                                pl.Series("freqCode", [""], dtype=pl.String),
+                                pl.Series("refPeriodId", [""], dtype=pl.String),
                                 pl.Series("refYear", [str(year)], dtype=pl.String),
                                 pl.Series("refMonth", [str(month)], dtype=pl.String),
+                                pl.Series("period", [""], dtype=pl.String),
                                 pl.Series("reporterCode", [""], dtype=pl.String),
+                                pl.Series("reporterISO", [""], dtype=pl.String),
                                 pl.Series("reporterDesc", [""], dtype=pl.String),
                                 pl.Series("flowCode", [""], dtype=pl.String),
                                 pl.Series("flowDesc", [""], dtype=pl.String),
+                                pl.Series("partnerCode", [iso], dtype=pl.String),
+                                pl.Series("partnerISO", [""], dtype=pl.String),
                                 pl.Series("partnerDesc", [""], dtype=pl.String),
+                                pl.Series("partner2Code", [""], dtype=pl.String),
+                                pl.Series("partner2ISO", [""], dtype=pl.String),
+                                pl.Series("partner2Desc", [""], dtype=pl.String),
                                 pl.Series("classificationCode", [""], dtype=pl.String),
+                                pl.Series(
+                                    "classificationSearchCode", [""], dtype=pl.String
+                                ),
+                                pl.Series(
+                                    "isOriginalClassification",
+                                    [""],
+                                    dtype=pl.String,
+                                ),
                                 pl.Series("cmdCode", [code], dtype=pl.String),
                                 pl.Series("cmdDesc", [""], dtype=pl.String),
+                                pl.Series("aggrLevel", [""], dtype=pl.String),
+                                pl.Series("isLeaf", [""], dtype=pl.String),
+                                pl.Series("customsCode", [""], dtype=pl.String),
+                                pl.Series("customsDesc", [""], dtype=pl.String),
+                                pl.Series("mosCode", [""], dtype=pl.String),
+                                pl.Series("motCode", [""], dtype=pl.String),
+                                pl.Series("motDesc", [""], dtype=pl.String),
+                                pl.Series("qtyUnitCode", [""], dtype=pl.String),
+                                pl.Series("qtyUnitAbbr", [""], dtype=pl.String),
+                                pl.Series("qty", [0.0], dtype=pl.Float64),
+                                pl.Series("isQtyEstimated", [""], dtype=pl.String),
+                                pl.Series("altQtyUnitCode", [""], dtype=pl.String),
+                                pl.Series("altQtyUnitAbbr", [""], dtype=pl.String),
+                                pl.Series("altQty", [0.0], dtype=pl.Float64),
+                                pl.Series("isAltQtyEstimated", [""], dtype=pl.String),
+                                pl.Series("netWgt", [0.0], dtype=pl.Float64),
+                                pl.Series("isNetWgtEstimated", [""], dtype=pl.String),
+                                pl.Series("grossWgt", [0.0], dtype=pl.Float64),
+                                pl.Series("isGrossWgtEstimated", [""], dtype=pl.String),
                                 pl.Series("cifvalue", [0.0], dtype=pl.Float64),
                                 pl.Series("fobvalue", [0.0], dtype=pl.Float64),
                                 pl.Series("primaryValue", [0.0], dtype=pl.Float64),
-                                pl.Series("netWgt", [0.0], dtype=pl.Float64),
+                                pl.Series(
+                                    "legacyEstimationFlag", [""], dtype=pl.String
+                                ),
+                                pl.Series("isReported", [""], dtype=pl.String),
+                                pl.Series("isAggregate", [""], dtype=pl.String),
                             ]
                         )
                         self.conn.sql(
-                            "INSERT INTO 'comtradetable' BY NAME SELECT * FROM dummy_df"
+                            "INSERT INTO 'comtradetable' BY NAME SELECT * FROM dummy_df;"
                         )
 
                         logging.warning(
-                            f"Returned None for {year}-{month} for {code} Inserted dummy records"
+                            f"Returned None for {year}-{month} for {code} Inserted dummy records for iso {iso}"
                         )
                         continue
                     elif len(df) == 500:
                         logging.critical(
-                            f"Error: {year}-{month} {code} returned 500 rows."
+                            f"Error: {year}-{month} {code} and iso {iso} returned 500 rows."
                         )
 
                     self.conn.sql(
-                        "INSERT INTO 'comtradetable' BY NAME SELECT * FROM df"
+                        "INSERT INTO 'comtradetable' BY NAME SELECT * FROM df;"
                     )
                     logging.info(
-                        f"Succesfully inserted {len(df)} records for {year}-{month} for {code}"
+                        f"Succesfully inserted {len(df)} records for {year}-{month} for {code} for iso {iso}"
                     )
         return self.conn.sql("SELECT * FROM 'comtradetable';").pl()
 
@@ -529,7 +552,7 @@ class DataPull:
             }
             saving_path = f"{self.saving_dir}/raw/census_naics_imports.parquet"
 
-        for year in range(start_year, end_year + 1):
+        for year in range(2010, datetime.date.today().year + 1):
             url = f"{base_url}{flow}?get={param}&STATE={state}&key={key}&time={year}"
             r = requests.get(url).json()
             df = pl.DataFrame(r)

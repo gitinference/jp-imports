@@ -97,5 +97,26 @@ for year in range(2010, 2025):
 
 
 ```{python}
-type(mydf)
+year = 2010
+iso =
+mydf = comtradeapicall.previewFinalData(
+                typeCode='C',
+                freqCode='M',
+                clCode='HS',
+                period=f'{year}{str(month).zfill(2)}',
+                reporterCode='',
+                cmdCode=f'{code}',
+                flowCode='X',
+                partnerCode=iso,
+                partner2Code=None,
+                customsCode=None,
+                motCode=None,
+                maxRecords=500,
+                format_output='JSON',
+                aggregateBy=None,
+                breakdownMode=None,
+                countOnly=None,
+                includeDesc=True
+            )
+mydf           
 ```
