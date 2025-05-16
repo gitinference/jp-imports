@@ -75,7 +75,7 @@ class DataTrade(DataPull):
             df = df.filter((pl.col("date") >= start) & (pl.col("date") <= end))
         elif len(datetime.split("+")) == 1:
             df = self.insert_int_jp()
-            df = df.filter(pl.col("date") == datetime)
+            df = df.filter(pl.col("date").dt.year() == int(datetime))
         else:
             raise ValueError('Invalid time format. Use "date" or "start_date+end_date"')
 
@@ -154,7 +154,7 @@ class DataTrade(DataPull):
             df = df.filter((pl.col("date") >= start) & (pl.col("date") <= end))
         elif len(datetime.split("+")) == 1:
             df = self.insert_int_org()
-            df = df.filter(pl.col("date") == datetime)
+            df = df.filter(pl.col("date").dt.year() == int(datetime))
         else:
             raise ValueError('Invalid time format. Use "date" or "start_date+end_date"')
 
@@ -261,21 +261,21 @@ class DataTrade(DataPull):
                 return df
 
             case ["yearly", "country"]:
-                df = self.filter_data(base, ["year", "country_id"])
+                df = self.filter_data(base, ["year", "country"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
                     .otherwise(pl.col("year")),
-                    country_id=pl.when(pl.col("country_id").is_null())
-                    .then(pl.col("country_id_right"))
-                    .otherwise(pl.col("country_id")),
+                    country=pl.when(pl.col("country").is_null())
+                    .then(pl.col("country_right"))
+                    .otherwise(pl.col("country")),
                 )
-                df = df.select(pl.col("*").exclude("year_right", "country_id_right"))
+                df = df.select(pl.col("*").exclude("year_right", "country_right"))
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "country_id")
+                ).sort("year", "country")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
@@ -350,23 +350,23 @@ class DataTrade(DataPull):
                 return df
 
             case ["fiscal", "country"]:
-                df = self.filter_data(base, ["fiscal_year", "country_id"])
+                df = self.filter_data(base, ["fiscal_year", "country"])
                 df = df.with_columns(
                     fiscal_year=pl.when(pl.col("fiscal_year").is_null())
                     .then(pl.col("fiscal_year_right"))
                     .otherwise(pl.col("fiscal_year")),
-                    country_id=pl.when(pl.col("country_id").is_null())
-                    .then(pl.col("country_id_right"))
-                    .otherwise(pl.col("country_id")),
+                    country=pl.when(pl.col("country").is_null())
+                    .then(pl.col("country_right"))
+                    .otherwise(pl.col("country")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("fiscal_year_right", "country_id_right")
+                    pl.col("*").exclude("fiscal_year_right", "country_right")
                 )
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("fiscal_year", "country_id")
+                ).sort("fiscal_year", "country")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
@@ -450,7 +450,7 @@ class DataTrade(DataPull):
                 return df
 
             case ["qrt", "country"]:
-                df = self.filter_data(base, ["year", "qrt", "country_id"])
+                df = self.filter_data(base, ["year", "qrt", "country"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
@@ -458,18 +458,18 @@ class DataTrade(DataPull):
                     qrt=pl.when(pl.col("qrt").is_null())
                     .then(pl.col("qrt_right"))
                     .otherwise(pl.col("qrt")),
-                    country_id=pl.when(pl.col("country_id").is_null())
-                    .then(pl.col("country_id_right"))
-                    .otherwise(pl.col("country_id")),
+                    country=pl.when(pl.col("country").is_null())
+                    .then(pl.col("country_right"))
+                    .otherwise(pl.col("country")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("year_right", "qrt_right", "country_id_right")
+                    pl.col("*").exclude("year_right", "qrt_right", "country_right")
                 )
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "qrt", "country_id")
+                ).sort("year", "qrt", "country")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
@@ -553,7 +553,7 @@ class DataTrade(DataPull):
                 return df
 
             case ["monthly", "country"]:
-                df = self.filter_data(base, ["year", "month", "country_id"])
+                df = self.filter_data(base, ["year", "month", "country"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
@@ -561,18 +561,18 @@ class DataTrade(DataPull):
                     month=pl.when(pl.col("month").is_null())
                     .then(pl.col("month_right"))
                     .otherwise(pl.col("month")),
-                    country_id=pl.when(pl.col("country_id").is_null())
-                    .then(pl.col("country_id_right"))
-                    .otherwise(pl.col("country_id")),
+                    country=pl.when(pl.col("country").is_null())
+                    .then(pl.col("country_right"))
+                    .otherwise(pl.col("country")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("year_right", "month_right", "country_id_right")
+                    pl.col("*").exclude("year_right", "month_right", "country_right")
                 )
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "month", "country_id")
+                ).sort("year", "month", "country")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
