@@ -4,6 +4,7 @@ import pandas as pd
 import logging
 import os
 import webbrowser
+import numpy as np
 
 class DataGraph(DataTrade):
     def __init__(self):
@@ -31,7 +32,7 @@ class DataGraph(DataTrade):
             time_frame = 'qrt'
             datetime = second_dropdown-third_dropdown
 
-        if frequency is None and second_dropdown is None:
+        if not frequency and not second_dropdown:
             frequency = "Yearly"
             second_dropdown = 2009
         
@@ -46,27 +47,24 @@ class DataGraph(DataTrade):
         )
         df1_imports = df1_imports.to_pandas()
 
-        pie = alt.Chart(df1_imports).mark_arc(innerRadius=50).encode(
-            theta=alt.Theta(field="imports", type="quantitative"),
-            color=alt.Color(field="country", type="nominal"),
-            tooltip=["country", "imports"]
-        )
-
         df1_imports["percent"] = (df1_imports["imports"] / df1_imports["imports"].sum() * 100).round(1)
         df1_imports["label"] = df1_imports["country"] + ": " + df1_imports["percent"].astype(str) + "%"
 
-        text = alt.Chart(df1_imports).mark_text(radius=100).encode(
-            text="label:N",
+        base = alt.Chart(df1_imports).encode(
             theta=alt.Theta(field="imports", type="quantitative"),
-            color=alt.value("black")
+            color=alt.Color(field="country", type="nominal"),
+            tooltip=["country", "imports"],
+            order=alt.Order(field="imports", sort='descending'),
         )
 
-        pie = (pie + text).properties(
+        pie = base.mark_arc().encode()
+
+        pie = (pie).properties(
             width=700,
             height=500
         )
 
-        if third_dropdown is None:
+        if not third_dropdown:
             pie = pie.properties(
                 title=f"Time: {frequency} / {second_dropdown}",
             ).configure_title(
