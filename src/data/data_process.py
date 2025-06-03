@@ -871,3 +871,41 @@ class DataTrade(DataPull):
             year=pl.col("date").dt.year(),
         ).with_columns(qty=pl.col("conv_1") + pl.col("conv_2"))
         return df
+
+    def process_imports_exports(self, df: pl.DataFrame, graph_type: str):
+        df = df.group_by("country").agg(
+            pl.col(graph_type).sum().alias(graph_type)
+        ).with_columns(
+            rank = pl.col(graph_type).rank('dense', descending=True)
+        ).with_columns(
+            pl.when(pl.col("rank") <= 20)
+            .then(pl.col("country"))
+            .otherwise(pl.lit("Others"))
+            .alias("country")
+        ).group_by("country").agg(
+            pl.col(graph_type).sum()
+        ).sort(graph_type, descending=True)
+
+        df = df.to_pandas()
+        df["percent_num"] = df[graph_type] / df[graph_type].sum() * 100
+        df["percent"] = df["percent_num"].round(1).astype(str) + '%'
+        return df
+    
+    def process_hts_data(self, data: pl.DataFrame, hts_codes: pl.DataFrame, new_frequency: str, trade_type: str):
+        hts_codes = hts_codes.with_columns(
+            hts_code_first2=pl.col("hts_code").str.slice(0, 2)
+        )
+        hts_codes = hts_codes.select(pl.col("hts_code_first2").unique()).to_series().to_list()
+        
+        data = data.sort(new_frequency)
+        data = data.with_columns(
+            pl.col("hts_code").str.slice(0, 2).alias("hts_code_first2")
+        ).sort(
+            [new_frequency, "hts_code_first2"]
+        ).group_by(
+            [new_frequency, "hts_code_first2"]
+        ).agg(
+            pl.col(trade_type).sum().alias(trade_type)
+        )
+        data = data[[new_frequency, "hts_code_first2", trade_type]]
+        return data, hts_codes

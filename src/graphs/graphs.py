@@ -4,6 +4,7 @@ import logging
 import os
 import webbrowser
 import polars as pl
+import pandas as pd
 
 class DataGraph(DataTrade):
     def __init__(self):
@@ -53,23 +54,7 @@ class DataGraph(DataTrade):
             level_filter=level_filter,
             datetime=datetime
         )
-
-        df1_imports = df1_imports.group_by("country").agg(
-            pl.col("imports").sum().alias("imports")
-        ).with_columns(
-            rank = pl.col("imports").rank('dense', descending=True)
-        ).with_columns(
-            pl.when(pl.col("rank") <= 20)
-            .then(pl.col("country"))
-            .otherwise(pl.lit("Others"))
-            .alias("country")
-        ).group_by("country").agg(
-            pl.col("imports").sum()
-        ).sort("imports", descending=True)
-
-        df1_imports = df1_imports.to_pandas()
-        df1_imports["percent_num"] = df1_imports["imports"] / df1_imports["imports"].sum() * 100
-        df1_imports["percent"] = df1_imports["percent_num"].round(1).astype(str) + '%'
+        df1_imports = DataTrade.process_imports_exports(df1_imports, "imports")
 
         base = alt.Chart(df1_imports).encode(
             theta=alt.Theta(field="imports", type="quantitative").stack(True),
@@ -144,23 +129,7 @@ class DataGraph(DataTrade):
             level_filter=level_filter,
             datetime=datetime
         )
-
-        df1_exports = df1_exports.group_by("country").agg(
-            pl.col("exports").sum().alias("exports")
-        ).with_columns(
-            rank = pl.col("exports").rank('dense', descending=True)
-        ).with_columns(
-            pl.when(pl.col("rank") <= 30)
-            .then(pl.col("country"))
-            .otherwise(pl.lit("Others"))
-            .alias("country")
-        ).group_by("country").agg(
-            pl.col("exports").sum()
-        ).sort("exports", descending=True)
-
-        df1_exports = df1_exports.to_pandas()
-        df1_exports["percent_num"] = df1_exports["exports"] / df1_exports["exports"].sum() * 100
-        df1_exports["percent"] = df1_exports["percent_num"].round(1).astype(str) + '%'
+        df1_exports = DataTrade.process_imports_exports(df1_exports, "exports")
 
         base = alt.Chart(df1_exports).encode(
             theta=alt.Theta(field="exports", type="quantitative").stack(True),
@@ -199,3 +168,50 @@ class DataGraph(DataTrade):
                 title=f"Time: {frequency} / {second_dropdown} / {third_dropdown}",
             ).configure_title( anchor='middle', color='black',)
         return pie
+    
+    def gen_hts_graph(
+        self,
+        level: str = "",
+        agriculture_filter: bool = False,
+        group: bool = False,
+        level_filter: str = "",
+        frequency: str = "",
+        trade_type: str = "",
+    ):
+        hts_data = DataTrade.process_int_jp(
+            self,
+            level=level,
+            time_frame=frequency,
+            agriculture_filter=agriculture_filter,
+            group=group,
+            level_filter=level_filter,
+        )
+        if frequency == "yearly":
+            new_frequency = "year"
+        elif frequency == "monthly":
+            new_frequency = "month"
+        elif frequency == "fiscal":
+            new_frequency = "fiscal_year"
+        else:
+            new_frequency = frequency
+
+        hts_codes = DataTrade.process_int_jp(self, level_filter="", level="hts", time_frame="yearly")
+        data, hts_codes = DataTrade.process_hts_data(self, hts_data, hts_codes, new_frequency, trade_type)
+
+        x_axis = data[new_frequency]
+        y_axis = data[trade_type]
+
+        context = { "hts_codes": hts_codes, }
+
+        frequency = frequency.capitalize()
+        trade_type = trade_type.capitalize()
+        title = f"Frequency: {frequency} | HTS Code: {level_filter} | Trade Type: {trade_type}"
+
+        df = pd.DataFrame({ 'x': x_axis, 'y': y_axis })
+
+        chart = alt.Chart(df).mark_line(point=True).encode(
+            x='x',
+            y='y'
+        ).properties( title=title )
+
+        return chart, context
