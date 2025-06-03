@@ -886,9 +886,12 @@ class DataTrade(DataPull):
             pl.col(graph_type).sum()
         ).sort(graph_type, descending=True)
 
-        df = df.to_pandas()
-        df["percent_num"] = df[graph_type] / df[graph_type].sum() * 100
-        df["percent"] = df["percent_num"].round(1).astype(str) + '%'
+        df = df.with_columns(
+            (pl.col(graph_type) / df[graph_type].sum() * 100).round(1).alias("percent_num"),
+        )
+        df = df.with_columns(
+            pl.format("{}%", pl.col("percent_num")).alias("percent")
+        )
         return df
     
     def process_hts_data(self, data: pl.DataFrame, hts_codes: pl.DataFrame, new_frequency: str, trade_type: str):

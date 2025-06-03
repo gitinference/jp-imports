@@ -54,7 +54,7 @@ class DataGraph(DataTrade):
             level_filter=level_filter,
             datetime=datetime
         )
-        df1_imports = DataTrade.process_imports_exports(df1_imports, "imports")
+        df1_imports = DataTrade.process_imports_exports(self, df1_imports, "imports").to_pandas()
 
         base = alt.Chart(df1_imports).encode(
             theta=alt.Theta(field="imports", type="quantitative").stack(True),
@@ -129,7 +129,7 @@ class DataGraph(DataTrade):
             level_filter=level_filter,
             datetime=datetime
         )
-        df1_exports = DataTrade.process_imports_exports(df1_exports, "exports")
+        df1_exports = DataTrade.process_imports_exports(self, df1_exports, "exports").to_pandas()
 
         base = alt.Chart(df1_exports).encode(
             theta=alt.Theta(field="exports", type="quantitative").stack(True),
