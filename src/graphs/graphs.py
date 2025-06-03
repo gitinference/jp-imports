@@ -5,6 +5,7 @@ import os
 import webbrowser
 import polars as pl
 import pandas as pd
+import numpy as np
 
 class DataGraph(DataTrade):
     def __init__(self):
@@ -169,7 +170,7 @@ class DataGraph(DataTrade):
             ).configure_title( anchor='middle', color='black',)
         return pie
     
-    def gen_hts_graph(
+    def gen_hts_chart(
         self,
         level: str = "",
         agriculture_filter: bool = False,
@@ -215,3 +216,100 @@ class DataGraph(DataTrade):
         ).properties( title=title )
 
         return chart, context
+    
+    def gen_hts_ranking_chart(self, ):
+        df = DataTrade.process_price(self)
+        df.write_parquet("data/processed/moving.parquet")
+
+        top5_imports, last5_imports, top5_exports, last5_exports = DataTrade.process_hts_ranking_data(self, df)
+
+        # Create the top 5 exports chart
+        export_top = alt.Chart(top5_exports).mark_bar().encode(
+            x=alt.X("moving_price_exports:Q", title="Export Price"),
+            y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
+            tooltip=["hs4:N", "moving_price_exports:Q"],
+        ).properties(
+            title="Top 5 Items by Export Rank",
+            width=600,
+            height=300
+        )
+        text = alt.Chart(top5_exports).mark_text(
+            align="left",
+            baseline="middle",
+            dx=3
+        ).encode(
+            x="moving_price_exports:Q",
+            y=alt.Y("hs4:N", sort="-x"),
+            text=alt.Text("moving_price_exports:Q", format=".2f")
+        )
+        chart_export_top = export_top + text
+
+        # Create the last 5 exports chart
+        export_bottom = alt.Chart(last5_exports).mark_bar().encode(
+            x=alt.X("moving_price_exports:Q", title="Export Price"),
+            y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
+            tooltip=["hs4:N", "moving_price_exports:Q"],
+        ).properties(
+            title="Bottom 5 Items by Export Rank",
+            width=600,
+            height=300
+        )
+        text = alt.Chart(last5_exports).mark_text(
+            align="left",
+            baseline="middle",
+            dx=3
+        ).encode(
+            x="moving_price_exports:Q",
+            y=alt.Y("hs4:N", sort="-x"),
+            text=alt.Text("moving_price_exports:Q", format=".2f")
+        )
+        chart_export_bottom = export_bottom + text
+
+        # Create the top 5 imports chart
+        import_top = alt.Chart(top5_imports).mark_bar().encode(
+            x=alt.X("moving_price_imports:Q", title="Import Price"),
+            y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
+            tooltip=["hs4:N", "moving_price_imports:Q"],
+        ).properties(
+            title="Top 5 Items by Import Rank",
+            width=600,
+            height=300
+        )
+        text = alt.Chart(top5_imports).mark_text(
+            align="left",
+            baseline="middle",
+            dx=3
+        ).encode(
+            x="moving_price_imports:Q",
+            y=alt.Y("hs4:N", sort="-x"),
+            text=alt.Text("moving_price_imports:Q", format=".2f")
+        )
+        chart_import_top = import_top + text
+
+        # Create the bottom 5 imports chart
+        import_bottom = alt.Chart(last5_imports).mark_bar().encode(
+            x=alt.X("moving_price_imports:Q", title="Import Price"),
+            y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
+            tooltip=["hs4:N", "moving_price_imports:Q"],
+        ).properties(
+            title="Bottom 5 Items by Import Rank",
+            width=600,
+            height=300
+        )
+        text = alt.Chart(last5_imports).mark_text(
+            align="left",
+            baseline="middle",
+            dx=3
+        ).encode(
+            x="moving_price_imports:Q",
+            y=alt.Y("hs4:N", sort="-x"),
+            text=alt.Text("moving_price_imports:Q", format=".2f")
+        )
+        chart_import_bottom = import_bottom + text
+
+        return {
+            "export_top": chart_export_top,
+            "export_bottom": chart_export_bottom,
+            "import_top": chart_import_top,
+            "import_bottom": chart_import_bottom
+        }

@@ -912,3 +912,24 @@ class DataTrade(DataPull):
         )
         data = data[[new_frequency, "hts_code_first2", trade_type]]
         return data, hts_codes
+    
+    def process_hts_ranking_data(self, df: pl.DataFrame):
+        last_month = df.select(pl.col("date").max()).item()
+
+        df_last_month_imports = df.filter(
+            (pl.col("date") == last_month) & (pl.col("rank_imports_change_year_over_year") != 0)
+        )
+        df_last_month_exports = df.filter(
+            (pl.col("date") == last_month) & (pl.col("rank_exports_change_year_over_year") != 0)
+        )
+
+        df_imports_sorted = df_last_month_imports.sort("rank_imports_change_year_over_year", descending=True)
+        df_exports_sorted = df_last_month_exports.sort("rank_exports_change_year_over_year", descending=True)
+
+        top5_imports = df_imports_sorted.head(5)
+        last5_imports = df_imports_sorted.tail(5)
+
+        top5_exports = df_exports_sorted.head(5)
+        last5_exports = df_exports_sorted.tail(5)
+
+        return top5_imports, last5_imports, top5_exports, last5_exports
