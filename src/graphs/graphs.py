@@ -235,9 +235,14 @@ class DataGraph(DataTrade):
         top5_imports, last5_imports, top5_exports, last5_exports = DataTrade.process_hts_ranking_data(self, df)
 
         # Create the top 5 exports chart
-        export_top = alt.Chart(top5_exports).mark_bar(color="#504dff").encode(
+        export_top = alt.Chart(top5_exports).mark_bar().encode(
             x=alt.X("moving_price_exports:Q", axis=alt.Axis(title="Export Price", format="~s")),
             y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
+            color=alt.condition(
+                alt.datum.moving_price_exports < 0,
+                alt.value("red"),      
+                alt.value("#504dff")       
+            ),
             tooltip=["hs4:N", "moving_price_exports:Q"],
         ).properties(
             title="Top 5 Items by Export Rank",
@@ -256,9 +261,14 @@ class DataGraph(DataTrade):
         )
 
         # Create the last 5 exports chart
-        export_bottom = alt.Chart(last5_exports).mark_bar(color="#504dff").encode(
+        export_bottom = alt.Chart(last5_exports).mark_bar().encode(
             x=alt.X("moving_price_exports:Q", axis=alt.Axis(title="Export Price", format="~s")),
             y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
+            color=alt.condition(
+                alt.datum.moving_price_exports < 0,
+                alt.value("red"),      
+                alt.value("#504dff")       
+            ),
             tooltip=["hs4:N", "moving_price_exports:Q"],
         ).properties(
             title="Bottom 5 Items by Export Rank",
@@ -277,9 +287,14 @@ class DataGraph(DataTrade):
         )
 
         # Create the top 5 imports chart
-        import_top = alt.Chart(top5_imports).mark_bar(color="#504dff").encode(
+        import_top = alt.Chart(top5_imports).mark_bar().encode(
             x=alt.X("moving_price_imports:Q", axis=alt.Axis(title="Import Price", format="~s")),
             y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
+            color=alt.condition(
+                alt.datum.moving_price_imports < 0,
+                alt.value("red"),      
+                alt.value("#504dff")       
+            ),
             tooltip=["hs4:N", "moving_price_imports:Q"],
         ).properties(
             title="Top 5 Items by Import Rank",
@@ -298,9 +313,14 @@ class DataGraph(DataTrade):
         )
 
         # Create the bottom 5 imports chart
-        import_bottom = alt.Chart(last5_imports).mark_bar(color="#504dff").encode(
+        import_bottom = alt.Chart(last5_imports).mark_bar().encode(
             x=alt.X("moving_price_imports:Q", axis=alt.Axis(title="Import Price", format="~s")),
             y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
+            color=alt.condition(
+                alt.datum.moving_price_imports < 0,
+                alt.value("red"),      
+                alt.value("#504dff")       
+            ),
             tooltip=["hs4:N", "moving_price_imports:Q"],
         ).properties(
             title="Bottom 5 Items by Import Rank",

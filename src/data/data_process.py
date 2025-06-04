@@ -1,6 +1,7 @@
 from .data_pull import DataPull
 import polars as pl
 import os
+import logging
 
 
 class DataTrade(DataPull):
@@ -914,6 +915,7 @@ class DataTrade(DataPull):
         return data, hts_codes
     
     def process_hts_ranking_data(self, df: pl.DataFrame):
+        df = df.fill_null(0).fill_nan(0)
         last_month = df.select(pl.col("date").max()).item()
 
         df_last_month_imports = df.filter(
@@ -923,8 +925,8 @@ class DataTrade(DataPull):
             (pl.col("date") == last_month) & (pl.col("rank_exports_change_year_over_year") != 0)
         )
 
-        df_imports_sorted = df_last_month_imports.sort("rank_imports_change_year_over_year", descending=True)
-        df_exports_sorted = df_last_month_exports.sort("rank_exports_change_year_over_year", descending=True)
+        df_imports_sorted = df_last_month_imports.sort("rank_imports_change_year_over_year", descending=False)
+        df_exports_sorted = df_last_month_exports.sort("rank_exports_change_year_over_year", descending=False )
 
         top5_imports = df_imports_sorted.head(5)
         last5_imports = df_imports_sorted.tail(5)
