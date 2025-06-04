@@ -224,7 +224,7 @@ class DataGraph(DataTrade):
             anchor='start',     
             fontSize=16,         
             color='#333333',      
-            offset=10           
+            offset=30           
         )
         return chart, context
     
