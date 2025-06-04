@@ -235,92 +235,92 @@ class DataGraph(DataTrade):
         top5_imports, last5_imports, top5_exports, last5_exports = DataTrade.process_hts_ranking_data(self, df)
 
         # Create the top 5 exports chart
-        export_top = alt.Chart(top5_exports).mark_bar().encode(
-            x=alt.X("moving_price_exports:Q", title="Export Price"),
+        export_top = alt.Chart(top5_exports).mark_bar(color="#504dff").encode(
+            x=alt.X("moving_price_exports:Q", axis=alt.Axis(title="Export Price", format="~s")),
             y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
             tooltip=["hs4:N", "moving_price_exports:Q"],
         ).properties(
             title="Top 5 Items by Export Rank",
             width=600,
-            height=300
+            height=200
+        ).configure_view(
+            fill='#e6f7ff'
+        ).configure_axis(
+            gridColor='white',
+            grid=True
+        ).configure_title(
+            anchor='start',     
+            fontSize=16,         
+            color='#333333',      
+            offset=30           
         )
-        text = alt.Chart(top5_exports).mark_text(
-            align="left",
-            baseline="middle",
-            dx=3
-        ).encode(
-            x="moving_price_exports:Q",
-            y=alt.Y("hs4:N", sort="-x"),
-            text=alt.Text("moving_price_exports:Q", format=".2f")
-        )
-        chart_export_top = export_top + text
 
         # Create the last 5 exports chart
-        export_bottom = alt.Chart(last5_exports).mark_bar().encode(
-            x=alt.X("moving_price_exports:Q", title="Export Price"),
+        export_bottom = alt.Chart(last5_exports).mark_bar(color="#504dff").encode(
+            x=alt.X("moving_price_exports:Q", axis=alt.Axis(title="Export Price", format="~s")),
             y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
             tooltip=["hs4:N", "moving_price_exports:Q"],
         ).properties(
             title="Bottom 5 Items by Export Rank",
             width=600,
-            height=300
+            height=200
+        ).configure_view(
+            fill='#e6f7ff'
+        ).configure_axis(
+            gridColor='white',
+            grid=True
+        ).configure_title(
+            anchor='start',     
+            fontSize=16,         
+            color='#333333',      
+            offset=30           
         )
-        text = alt.Chart(last5_exports).mark_text(
-            align="left",
-            baseline="middle",
-            dx=3
-        ).encode(
-            x="moving_price_exports:Q",
-            y=alt.Y("hs4:N", sort="-x"),
-            text=alt.Text("moving_price_exports:Q", format=".2f")
-        )
-        chart_export_bottom = export_bottom + text
 
         # Create the top 5 imports chart
-        import_top = alt.Chart(top5_imports).mark_bar().encode(
-            x=alt.X("moving_price_imports:Q", title="Import Price"),
+        import_top = alt.Chart(top5_imports).mark_bar(color="#504dff").encode(
+            x=alt.X("moving_price_imports:Q", axis=alt.Axis(title="Import Price", format="~s")),
             y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
             tooltip=["hs4:N", "moving_price_imports:Q"],
         ).properties(
             title="Top 5 Items by Import Rank",
             width=600,
-            height=300
+            height=200
+        ).configure_view(
+            fill='#e6f7ff'
+        ).configure_axis(
+            gridColor='white',
+            grid=True
+        ).configure_title(
+            anchor='start',     
+            fontSize=16,         
+            color='#333333',      
+            offset=30           
         )
-        text = alt.Chart(top5_imports).mark_text(
-            align="left",
-            baseline="middle",
-            dx=3
-        ).encode(
-            x="moving_price_imports:Q",
-            y=alt.Y("hs4:N", sort="-x"),
-            text=alt.Text("moving_price_imports:Q", format=".2f")
-        )
-        chart_import_top = import_top + text
 
         # Create the bottom 5 imports chart
-        import_bottom = alt.Chart(last5_imports).mark_bar().encode(
-            x=alt.X("moving_price_imports:Q", title="Import Price"),
+        import_bottom = alt.Chart(last5_imports).mark_bar(color="#504dff").encode(
+            x=alt.X("moving_price_imports:Q", axis=alt.Axis(title="Import Price", format="~s")),
             y=alt.Y("hs4:N", sort="-x", title="HTS Code"),
             tooltip=["hs4:N", "moving_price_imports:Q"],
         ).properties(
             title="Bottom 5 Items by Import Rank",
             width=600,
-            height=300
+            height=200
+        ).configure_view(
+            fill='#e6f7ff'
+        ).configure_axis(
+            gridColor='white',
+            grid=True
+        ).configure_title(
+            anchor='start',     
+            fontSize=16,         
+            color='#333333',      
+            offset=30           
         )
-        text = alt.Chart(last5_imports).mark_text(
-            align="left",
-            baseline="middle",
-            dx=3
-        ).encode(
-            x="moving_price_imports:Q",
-            y=alt.Y("hs4:N", sort="-x"),
-            text=alt.Text("moving_price_imports:Q", format=".2f")
-        )
-        chart_import_bottom = import_bottom + text
 
         return {
-            "export_top": chart_export_top,
-            "export_bottom": chart_export_bottom,
-            "import_top": chart_import_top,
-            "import_bottom": chart_import_bottom
+            "export_top": export_top,
+            "export_bottom": export_bottom,
+            "import_top": import_top,
+            "import_bottom": import_bottom
         }
