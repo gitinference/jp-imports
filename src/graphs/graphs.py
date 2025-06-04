@@ -211,10 +211,21 @@ class DataGraph(DataTrade):
         df = pd.DataFrame({ 'x': x_axis, 'y': y_axis })
 
         chart = alt.Chart(df).mark_line(point=True).encode(
-            x='x',
-            y='y'
-        ).properties( title=title )
-
+            x=alt.X('x', axis=alt.Axis(title=None, format="~d", ), ),
+            y=alt.Y('y', axis=alt.Axis(title=None, format='~s', ))
+        ).properties( title=title ).configure_view(
+            fill='#e6f7ff'
+        ).configure_axis(
+            gridColor='white',
+            grid=True
+        ).properties( 
+            width=600, height=200, 
+        ).configure_title(
+            anchor='start',     
+            fontSize=16,         
+            color='#333333',      
+            offset=10           
+        )
         return chart, context
     
     def gen_hts_ranking_chart(self, ):
