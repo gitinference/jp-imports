@@ -1,6 +1,7 @@
 from .data_pull import DataPull
 import polars as pl
 import os
+import logging
 
 
 class DataTrade(DataPull):
@@ -871,3 +872,66 @@ class DataTrade(DataPull):
             year=pl.col("date").dt.year(),
         ).with_columns(qty=pl.col("conv_1") + pl.col("conv_2"))
         return df
+
+    def process_imports_exports(self, df: pl.DataFrame, graph_type: str):
+        df = df.group_by("country").agg(
+            pl.col(graph_type).sum().alias(graph_type)
+        ).with_columns(
+            rank = pl.col(graph_type).rank('dense', descending=True)
+        ).with_columns(
+            pl.when(pl.col("rank") <= 20)
+            .then(pl.col("country"))
+            .otherwise(pl.lit("Others"))
+            .alias("country")
+        ).group_by("country").agg(
+            pl.col(graph_type).sum()
+        ).sort(graph_type, descending=True)
+
+        df = df.with_columns(
+            (pl.col(graph_type) / df[graph_type].sum() * 100).round(1).alias("percent_num"),
+        )
+        df = df.with_columns(
+            pl.format("{}%", pl.col("percent_num")).alias("percent")
+        )
+        return df
+    
+    def process_hts_data(self, data: pl.DataFrame, hts_codes: pl.DataFrame, new_frequency: str, trade_type: str):
+        hts_codes = hts_codes.with_columns(
+            hts_code_first2=pl.col("hts_code").str.slice(0, 2)
+        )
+        hts_codes = hts_codes.select(pl.col("hts_code_first2").unique()).to_series().to_list()
+        
+        data = data.sort(new_frequency)
+        data = data.with_columns(
+            pl.col("hts_code").str.slice(0, 2).alias("hts_code_first2")
+        ).sort(
+            [new_frequency, "hts_code_first2"]
+        ).group_by(
+            [new_frequency, "hts_code_first2"]
+        ).agg(
+            pl.col(trade_type).sum().alias(trade_type)
+        )
+        data = data[[new_frequency, "hts_code_first2", trade_type]]
+        return data, hts_codes
+    
+    def process_hts_ranking_data(self, df: pl.DataFrame):
+        df = df.fill_null(0).fill_nan(0)
+        last_month = df.select(pl.col("date").max()).item()
+
+        df_last_month_imports = df.filter(
+            (pl.col("date") == last_month) & (pl.col("rank_imports_change_year_over_year") != 0)
+        )
+        df_last_month_exports = df.filter(
+            (pl.col("date") == last_month) & (pl.col("rank_exports_change_year_over_year") != 0)
+        )
+
+        df_imports_sorted = df_last_month_imports.sort("rank_imports_change_year_over_year", descending=False)
+        df_exports_sorted = df_last_month_exports.sort("rank_exports_change_year_over_year", descending=False )
+
+        top5_imports = df_imports_sorted.head(5)
+        last5_imports = df_imports_sorted.tail(5)
+
+        top5_exports = df_exports_sorted.head(5)
+        last5_exports = df_exports_sorted.tail(5)
+
+        return top5_imports, last5_imports, top5_exports, last5_exports
