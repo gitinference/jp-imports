@@ -900,6 +900,7 @@ class DataTrade(DataPull):
             hts_code_first2=pl.col("hts_code").str.slice(0, 2)
         )
         hts_codes = hts_codes.select(pl.col("hts_code_first2").unique()).to_series().to_list()
+        hts_codes = sorted(hts_codes)
         
         data = data.sort(new_frequency)
         data = data.with_columns(

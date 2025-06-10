@@ -193,10 +193,13 @@ class DataGraph(DataTrade):
             new_frequency = "month"
         elif frequency == "fiscal":
             new_frequency = "fiscal_year"
+        elif frequency == "quarterly":
+            new_frequency = frequency
+            frequency = 'qrt'
         else:
             new_frequency = frequency
 
-        hts_codes = DataTrade.process_int_jp(self, level_filter="", level="hts", time_frame="yearly")
+        hts_codes = DataTrade.process_int_jp(self, level_filter="", level="hts", time_frame=frequency)
         data, hts_codes = DataTrade.process_hts_data(self, hts_data, hts_codes, new_frequency, trade_type)
 
         x_axis = data[new_frequency]
@@ -212,14 +215,18 @@ class DataGraph(DataTrade):
 
         chart = alt.Chart(df).mark_line(point=True).encode(
             x=alt.X('x', axis=alt.Axis(title=None, format="~d", ), ),
-            y=alt.Y('y', axis=alt.Axis(title=None, format='~s', ))
+            y=alt.Y('y', axis=alt.Axis(title=None, format='~s', )),
+            tooltip=[
+                alt.Tooltip('x', ),
+                alt.Tooltip('y', )
+            ]
         ).properties( title=title ).configure_view(
             fill='#e6f7ff'
         ).configure_axis(
             gridColor='white',
             grid=True
         ).properties( 
-            width=600, height=200, 
+            width='container', height=200, 
         ).configure_title(
             anchor='start',     
             fontSize=16,         
