@@ -6,6 +6,7 @@ import webbrowser
 import polars as pl
 import pandas as pd
 import numpy as np
+import calendar
 
 class DataGraph(DataTrade):
     def __init__(self):
@@ -37,10 +38,37 @@ class DataGraph(DataTrade):
             datetime = second_dropdown
         elif frequency == "Monthly":
             time_frame = 'monthly'
-            datetime = second_dropdown-third_dropdown
+
+            month = int(second_dropdown)
+            year = int(third_dropdown)
+            
+            start_of_month = f"{year}-{month:02d}-01"
+            end_of_month = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]}"
+            
+            datetime = f"{start_of_month}+{end_of_month}"
+            
         elif frequency == "Quarterly":
             time_frame = 'qrt'
-            datetime = second_dropdown-third_dropdown
+
+            if second_dropdown == '1':
+                start_month = 1
+                end_month = 3 
+            elif second_dropdown == '2':
+                start_month = 4
+                end_month = 6
+            elif second_dropdown == '3':
+                start_month = 7
+                end_month = 9
+            elif second_dropdown == '4':
+                start_month = 10
+                end_month = 12
+
+            year = int(third_dropdown)
+            
+            start_of_month = f"{year}-{start_month:02d}-01"
+            end_of_month = f"{year}-{end_month:02d}-{calendar.monthrange(year, end_month)[1]}"
+            
+            datetime = f"{start_of_month}+{end_of_month}"
 
         if not frequency and not second_dropdown:
             frequency = "Yearly"
@@ -112,10 +140,37 @@ class DataGraph(DataTrade):
             datetime = second_dropdown
         elif frequency == "Monthly":
             time_frame = 'monthly'
-            datetime = second_dropdown-third_dropdown
+
+            month = int(second_dropdown)
+            year = int(third_dropdown)
+            
+            start_of_month = f"{year}-{month:02d}-01"
+            end_of_month = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]}"
+            
+            datetime = f"{start_of_month}+{end_of_month}"
+
         elif frequency == "Quarterly":
             time_frame = 'qrt'
-            datetime = second_dropdown-third_dropdown
+
+            if second_dropdown == 'Qrt 1':
+                start_month = 1
+                end_month = 3 
+            elif second_dropdown == 'Qrt 2':
+                start_month = 4
+                end_month = 6
+            elif second_dropdown == 'Qrt 3':
+                start_month = 7
+                end_month = 9
+            elif second_dropdown == 'Qrt 4':
+                start_month = 10
+                end_month = 12
+
+            year = int(third_dropdown)
+            
+            start_of_month = f"{year}-{start_month:02d}-01"
+            end_of_month = f"{year}-{end_month:02d}-{calendar.monthrange(year, end_month)[1]}"
+            
+            datetime = f"{start_of_month}+{end_of_month}"
 
         if not frequency and not second_dropdown:
             frequency = "Yearly"
@@ -193,10 +248,13 @@ class DataGraph(DataTrade):
             new_frequency = "month"
         elif frequency == "fiscal":
             new_frequency = "fiscal_year"
+        elif frequency == "quarterly":
+            new_frequency = frequency
+            frequency = 'qrt'
         else:
             new_frequency = frequency
 
-        hts_codes = DataTrade.process_int_jp(self, level_filter="", level="hts", time_frame="yearly")
+        hts_codes = DataTrade.process_int_jp(self, level_filter="", level="hts", time_frame=frequency)
         data, hts_codes = DataTrade.process_hts_data(self, hts_data, hts_codes, new_frequency, trade_type)
 
         x_axis = data[new_frequency]
@@ -212,14 +270,18 @@ class DataGraph(DataTrade):
 
         chart = alt.Chart(df).mark_line(point=True).encode(
             x=alt.X('x', axis=alt.Axis(title=None, format="~d", ), ),
-            y=alt.Y('y', axis=alt.Axis(title=None, format='~s', ))
+            y=alt.Y('y', axis=alt.Axis(title=None, format='~s', )),
+            tooltip=[
+                alt.Tooltip('x', ),
+                alt.Tooltip('y', )
+            ]
         ).properties( title=title ).configure_view(
             fill='#e6f7ff'
         ).configure_axis(
             gridColor='white',
             grid=True
         ).properties( 
-            width=600, height=200, 
+            width='container', height=200, 
         ).configure_title(
             anchor='start',     
             fontSize=16,         
@@ -246,7 +308,7 @@ class DataGraph(DataTrade):
             tooltip=["hs4:N", "moving_price_exports:Q"],
         ).properties(
             title="Top 5 Items by Export Rank",
-            width=600,
+            width='container',
             height=200
         ).configure_view(
             fill='#e6f7ff'
@@ -272,7 +334,7 @@ class DataGraph(DataTrade):
             tooltip=["hs4:N", "moving_price_exports:Q"],
         ).properties(
             title="Bottom 5 Items by Export Rank",
-            width=600,
+            width='container',
             height=200
         ).configure_view(
             fill='#e6f7ff'
@@ -298,7 +360,7 @@ class DataGraph(DataTrade):
             tooltip=["hs4:N", "moving_price_imports:Q"],
         ).properties(
             title="Top 5 Items by Import Rank",
-            width=600,
+            width='container',
             height=200
         ).configure_view(
             fill='#e6f7ff'
@@ -324,7 +386,7 @@ class DataGraph(DataTrade):
             tooltip=["hs4:N", "moving_price_imports:Q"],
         ).properties(
             title="Bottom 5 Items by Import Rank",
-            width=600,
+            width='container',
             height=200
         ).configure_view(
             fill='#e6f7ff'
