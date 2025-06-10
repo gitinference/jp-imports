@@ -246,7 +246,7 @@ class DataGraph(DataTrade):
             tooltip=["hs4:N", "moving_price_exports:Q"],
         ).properties(
             title="Top 5 Items by Export Rank",
-            width=600,
+            width='container',
             height=200
         ).configure_view(
             fill='#e6f7ff'
@@ -272,7 +272,7 @@ class DataGraph(DataTrade):
             tooltip=["hs4:N", "moving_price_exports:Q"],
         ).properties(
             title="Bottom 5 Items by Export Rank",
-            width=600,
+            width='container',
             height=200
         ).configure_view(
             fill='#e6f7ff'
@@ -298,7 +298,7 @@ class DataGraph(DataTrade):
             tooltip=["hs4:N", "moving_price_imports:Q"],
         ).properties(
             title="Top 5 Items by Import Rank",
-            width=600,
+            width='container',
             height=200
         ).configure_view(
             fill='#e6f7ff'
@@ -324,7 +324,7 @@ class DataGraph(DataTrade):
             tooltip=["hs4:N", "moving_price_imports:Q"],
         ).properties(
             title="Bottom 5 Items by Import Rank",
-            width=600,
+            width='container',
             height=200
         ).configure_view(
             fill='#e6f7ff'
