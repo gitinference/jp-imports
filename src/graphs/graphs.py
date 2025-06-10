@@ -6,6 +6,7 @@ import webbrowser
 import polars as pl
 import pandas as pd
 import numpy as np
+import calendar
 
 class DataGraph(DataTrade):
     def __init__(self):
@@ -37,10 +38,37 @@ class DataGraph(DataTrade):
             datetime = second_dropdown
         elif frequency == "Monthly":
             time_frame = 'monthly'
-            datetime = second_dropdown-third_dropdown
+
+            month = int(second_dropdown)
+            year = int(third_dropdown)
+            
+            start_of_month = f"{year}-{month:02d}-01"
+            end_of_month = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]}"
+            
+            datetime = f"{start_of_month}+{end_of_month}"
+            
         elif frequency == "Quarterly":
             time_frame = 'qrt'
-            datetime = second_dropdown-third_dropdown
+
+            if second_dropdown == '1':
+                start_month = 1
+                end_month = 3 
+            elif second_dropdown == '2':
+                start_month = 4
+                end_month = 6
+            elif second_dropdown == '3':
+                start_month = 7
+                end_month = 9
+            elif second_dropdown == '4':
+                start_month = 10
+                end_month = 12
+
+            year = int(third_dropdown)
+            
+            start_of_month = f"{year}-{start_month:02d}-01"
+            end_of_month = f"{year}-{end_month:02d}-{calendar.monthrange(year, end_month)[1]}"
+            
+            datetime = f"{start_of_month}+{end_of_month}"
 
         if not frequency and not second_dropdown:
             frequency = "Yearly"
@@ -112,10 +140,37 @@ class DataGraph(DataTrade):
             datetime = second_dropdown
         elif frequency == "Monthly":
             time_frame = 'monthly'
-            datetime = second_dropdown-third_dropdown
+
+            month = int(second_dropdown)
+            year = int(third_dropdown)
+            
+            start_of_month = f"{year}-{month:02d}-01"
+            end_of_month = f"{year}-{month:02d}-{calendar.monthrange(year, month)[1]}"
+            
+            datetime = f"{start_of_month}+{end_of_month}"
+
         elif frequency == "Quarterly":
             time_frame = 'qrt'
-            datetime = second_dropdown-third_dropdown
+
+            if second_dropdown == 'Qrt 1':
+                start_month = 1
+                end_month = 3 
+            elif second_dropdown == 'Qrt 2':
+                start_month = 4
+                end_month = 6
+            elif second_dropdown == 'Qrt 3':
+                start_month = 7
+                end_month = 9
+            elif second_dropdown == 'Qrt 4':
+                start_month = 10
+                end_month = 12
+
+            year = int(third_dropdown)
+            
+            start_of_month = f"{year}-{start_month:02d}-01"
+            end_of_month = f"{year}-{end_month:02d}-{calendar.monthrange(year, end_month)[1]}"
+            
+            datetime = f"{start_of_month}+{end_of_month}"
 
         if not frequency and not second_dropdown:
             frequency = "Yearly"

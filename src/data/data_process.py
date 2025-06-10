@@ -2,6 +2,7 @@ from .data_pull import DataPull
 import polars as pl
 import os
 import logging
+from datetime import datetime as dt
 
 
 class DataTrade(DataPull):
@@ -66,19 +67,7 @@ class DataTrade(DataPull):
 
         switch = [time_frame, level]
 
-        if datetime == "":
-            df = self.insert_int_jp()
-        elif len(datetime.split("+")) == 2:
-            times = datetime.split("+")
-            start = times[0]
-            end = times[1]
-            df = self.insert_int_jp()
-            df = df.filter((pl.col("date") >= start) & (pl.col("date") <= end))
-        elif len(datetime.split("+")) == 1:
-            df = self.insert_int_jp()
-            df = df.filter(pl.col("date").dt.year() == int(datetime))
-        else:
-            raise ValueError('Invalid time format. Use "date" or "start_date+end_date"')
+        df = self.insert_int_jp()
 
         if agriculture_filter:
             df = df.filter(pl.col("agri_prod") == 1)
@@ -95,6 +84,22 @@ class DataTrade(DataPull):
             df = df.filter(pl.col("country").str.starts_with(level_filter))
             if df.is_empty():
                 raise ValueError(f"Invalid Name code: {level_filter}")
+            
+        if datetime == "":
+            df = df
+        elif len(datetime.split("+")) == 2:
+            times = datetime.split("+")
+            start = times[0]
+            end = times[1]
+
+            start_date = dt.strptime(start, "%Y-%m-%d")
+            end_date = dt.strptime(end, "%Y-%m-%d")
+
+            df = df.filter((pl.col("date") >= start_date) & (pl.col("date") <= end_date))
+        elif len(datetime.split("+")) == 1:
+            df = df.filter(pl.col("date").dt.year() == int(datetime))
+        else:
+            raise ValueError('Invalid time format. Use "date" or "start_date+end_date"')
 
         df = self.conversion(df)
 
