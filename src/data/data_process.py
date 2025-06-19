@@ -1,8 +1,9 @@
-from .data_pull import DataPull
-import polars as pl
 import os
-import logging
 from datetime import datetime as dt
+
+import polars as pl
+
+from .data_pull import DataPull
 
 
 class DataTrade(DataPull):
@@ -84,7 +85,7 @@ class DataTrade(DataPull):
             df = df.filter(pl.col("country").str.starts_with(level_filter))
             if df.is_empty():
                 raise ValueError(f"Invalid Name code: {level_filter}")
-            
+
         if datetime == "":
             df = df
         elif len(datetime.split("+")) == 2:
@@ -95,7 +96,9 @@ class DataTrade(DataPull):
             start_date = dt.strptime(start, "%Y-%m-%d")
             end_date = dt.strptime(end, "%Y-%m-%d")
 
-            df = df.filter((pl.col("date") >= start_date) & (pl.col("date") <= end_date))
+            df = df.filter(
+                (pl.col("date") >= start_date) & (pl.col("date") <= end_date)
+            )
         elif len(datetime.split("+")) == 1:
             df = df.filter(pl.col("date").dt.year() == int(datetime))
         else:
@@ -223,21 +226,21 @@ class DataTrade(DataPull):
                 return df
 
             case ["yearly", "naics"]:
-                df = self.filter_data(base, ["year", "naics_id"])
+                df = self.filter_data(base, ["year", "naics"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
                     .otherwise(pl.col("year")),
-                    naics_id=pl.when(pl.col("naics_id").is_null())
-                    .then(pl.col("naics_id_right"))
-                    .otherwise(pl.col("naics_id")),
+                    naics=pl.when(pl.col("naics").is_null())
+                    .then(pl.col("naics_right"))
+                    .otherwise(pl.col("naics")),
                 )
-                df = df.select(pl.col("*").exclude("year_right", "naics_id_right"))
+                df = df.select(pl.col("*").exclude("year_right", "naics_right"))
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "naics_id")
+                ).sort("year", "naics")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
@@ -308,23 +311,21 @@ class DataTrade(DataPull):
                 return df
 
             case ["fiscal", "naics"]:
-                df = self.filter_data(base, ["fiscal_year", "naics_id"])
+                df = self.filter_data(base, ["fiscal_year", "naics"])
                 df = df.with_columns(
                     fiscal_year=pl.when(pl.col("fiscal_year").is_null())
                     .then(pl.col("fiscal_year_right"))
                     .otherwise(pl.col("fiscal_year")),
-                    naics_id=pl.when(pl.col("naics_id").is_null())
-                    .then(pl.col("naics_id_right"))
-                    .otherwise(pl.col("naics_id")),
+                    naics=pl.when(pl.col("naics").is_null())
+                    .then(pl.col("naics_right"))
+                    .otherwise(pl.col("naics")),
                 )
-                df = df.select(
-                    pl.col("*").exclude("fiscal_year_right", "naics_id_right")
-                )
+                df = df.select(pl.col("*").exclude("fiscal_year_right", "naics_right"))
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("fiscal_year", "naics_id")
+                ).sort("fiscal_year", "naics")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
@@ -402,7 +403,7 @@ class DataTrade(DataPull):
                 return df
 
             case ["qrt", "naics"]:
-                df = self.filter_data(base, ["year", "qrt", "naics_id"])
+                df = self.filter_data(base, ["year", "qrt", "naics"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
@@ -410,18 +411,18 @@ class DataTrade(DataPull):
                     qrt=pl.when(pl.col("qrt").is_null())
                     .then(pl.col("qrt_right"))
                     .otherwise(pl.col("qrt")),
-                    naics_id=pl.when(pl.col("naics_id").is_null())
-                    .then(pl.col("naics_id_right"))
-                    .otherwise(pl.col("naics_id")),
+                    naics=pl.when(pl.col("naics").is_null())
+                    .then(pl.col("naics_right"))
+                    .otherwise(pl.col("naics")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("year_right", "qrt_right", "naics_id_right")
+                    pl.col("*").exclude("year_right", "qrt_right", "naics_right")
                 )
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "qrt", "naics_id")
+                ).sort("year", "qrt", "naics")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
@@ -505,7 +506,7 @@ class DataTrade(DataPull):
                 return df
 
             case ["monthly", "naics"]:
-                df = self.filter_data(base, ["year", "month", "naics_id"])
+                df = self.filter_data(base, ["year", "month", "naics"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
@@ -513,18 +514,18 @@ class DataTrade(DataPull):
                     month=pl.when(pl.col("month").is_null())
                     .then(pl.col("month_right"))
                     .otherwise(pl.col("month")),
-                    naics_id=pl.when(pl.col("naics_id").is_null())
-                    .then(pl.col("naics_id_right"))
-                    .otherwise(pl.col("naics_id")),
+                    naics=pl.when(pl.col("naics").is_null())
+                    .then(pl.col("naics_right"))
+                    .otherwise(pl.col("naics")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("year_right", "month_right", "naics_id_right")
+                    pl.col("*").exclude("year_right", "month_right", "naics_right")
                 )
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "month", "naics_id")
+                ).sort("year", "month", "naics")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
@@ -879,60 +880,75 @@ class DataTrade(DataPull):
         return df
 
     def process_imports_exports(self, df: pl.DataFrame, graph_type: str):
-        df = df.group_by("country").agg(
-            pl.col(graph_type).sum().alias(graph_type)
-        ).with_columns(
-            rank = pl.col(graph_type).rank('dense', descending=True)
-        ).with_columns(
-            pl.when(pl.col("rank") <= 20)
-            .then(pl.col("country"))
-            .otherwise(pl.lit("Others"))
-            .alias("country")
-        ).group_by("country").agg(
-            pl.col(graph_type).sum()
-        ).sort(graph_type, descending=True)
+        df = (
+            df.group_by("country")
+            .agg(pl.col(graph_type).sum().alias(graph_type))
+            .with_columns(rank=pl.col(graph_type).rank("dense", descending=True))
+            .with_columns(
+                pl.when(pl.col("rank") <= 20)
+                .then(pl.col("country"))
+                .otherwise(pl.lit("Others"))
+                .alias("country")
+            )
+            .group_by("country")
+            .agg(pl.col(graph_type).sum())
+            .sort(graph_type, descending=True)
+        )
 
         df = df.with_columns(
-            (pl.col(graph_type) / df[graph_type].sum() * 100).round(1).alias("percent_num"),
+            (pl.col(graph_type) / df[graph_type].sum() * 100)
+            .round(1)
+            .alias("percent_num"),
         )
-        df = df.with_columns(
-            pl.format("{}%", pl.col("percent_num")).alias("percent")
-        )
+        df = df.with_columns(pl.format("{}%", pl.col("percent_num")).alias("percent"))
         return df
-    
-    def process_hts_data(self, data: pl.DataFrame, hts_codes: pl.DataFrame, new_frequency: str, trade_type: str):
+
+    def process_hts_data(
+        self,
+        data: pl.DataFrame,
+        hts_codes: pl.DataFrame,
+        new_frequency: str,
+        trade_type: str,
+    ):
         hts_codes = hts_codes.with_columns(
             hts_code_first2=pl.col("hts_code").str.slice(0, 2)
         )
-        hts_codes = hts_codes.select(pl.col("hts_code_first2").unique()).to_series().to_list()
+        hts_codes = (
+            hts_codes.select(pl.col("hts_code_first2").unique()).to_series().to_list()
+        )
         hts_codes = sorted(hts_codes)
-        
+
         data = data.sort(new_frequency)
-        data = data.with_columns(
-            pl.col("hts_code").str.slice(0, 2).alias("hts_code_first2")
-        ).sort(
-            [new_frequency, "hts_code_first2"]
-        ).group_by(
-            [new_frequency, "hts_code_first2"]
-        ).agg(
-            pl.col(trade_type).sum().alias(trade_type)
+        data = (
+            data.with_columns(
+                pl.col("hts_code").str.slice(0, 2).alias("hts_code_first2")
+            )
+            .sort([new_frequency, "hts_code_first2"])
+            .group_by([new_frequency, "hts_code_first2"])
+            .agg(pl.col(trade_type).sum().alias(trade_type))
         )
         data = data[[new_frequency, "hts_code_first2", trade_type]]
         return data, hts_codes
-    
+
     def process_hts_ranking_data(self, df: pl.DataFrame):
         df = df.fill_null(0).fill_nan(0)
         last_month = df.select(pl.col("date").max()).item()
 
         df_last_month_imports = df.filter(
-            (pl.col("date") == last_month) & (pl.col("rank_imports_change_year_over_year") != 0)
+            (pl.col("date") == last_month)
+            & (pl.col("rank_imports_change_year_over_year") != 0)
         )
         df_last_month_exports = df.filter(
-            (pl.col("date") == last_month) & (pl.col("rank_exports_change_year_over_year") != 0)
+            (pl.col("date") == last_month)
+            & (pl.col("rank_exports_change_year_over_year") != 0)
         )
 
-        df_imports_sorted = df_last_month_imports.sort("rank_imports_change_year_over_year", descending=False)
-        df_exports_sorted = df_last_month_exports.sort("rank_exports_change_year_over_year", descending=False )
+        df_imports_sorted = df_last_month_imports.sort(
+            "rank_imports_change_year_over_year", descending=False
+        )
+        df_exports_sorted = df_last_month_exports.sort(
+            "rank_exports_change_year_over_year", descending=False
+        )
 
         top5_imports = df_imports_sorted.head(5)
         last5_imports = df_imports_sorted.tail(5)
@@ -941,3 +957,4 @@ class DataTrade(DataPull):
         last5_exports = df_exports_sorted.tail(5)
 
         return top5_imports, last5_imports, top5_exports, last5_exports
+
