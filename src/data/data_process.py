@@ -82,7 +82,7 @@ class DataTrade(DataPull):
             if df.is_empty():
                 raise ValueError(f"Invalid NAICS code: {level_filter}")
         elif level == "country":
-            df = df.filter(pl.col("country").str.starts_with(level_filter))
+            df = df.filter(pl.col("hts_code").str.starts_with(level_filter))
             if df.is_empty():
                 raise ValueError(f"Invalid Name code: {level_filter}")
 
@@ -270,7 +270,7 @@ class DataTrade(DataPull):
                 return df
 
             case ["yearly", "country"]:
-                df = self.filter_data(base, ["year", "country"])
+                df = self.filter_data(base, ["year", "country", 'hts_code'])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
@@ -278,8 +278,11 @@ class DataTrade(DataPull):
                     country=pl.when(pl.col("country").is_null())
                     .then(pl.col("country_right"))
                     .otherwise(pl.col("country")),
+                    hts_code=pl.when(pl.col("hts_code").is_null())
+                    .then(pl.col("hts_code_right"))
+                    .otherwise(pl.col("hts_code")),
                 )
-                df = df.select(pl.col("*").exclude("year_right", "country_right"))
+                df = df.select(pl.col("*").exclude("year_right", "country_right", "hts_code_right"))
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"

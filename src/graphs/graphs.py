@@ -1,7 +1,9 @@
 import altair as alt
 from ..data.data_process import DataTrade
 import pandas as pd
+import polars as pl
 import calendar
+import logging
 
 
 class DataGraph(DataTrade):
@@ -110,59 +112,86 @@ class DataGraph(DataTrade):
             level_filter=level_filter,
             datetime=datetime,
         )
+
+        hts_codes = DataTrade.process_int_jp(
+            self,
+            level=level,
+            time_frame=time_frame,
+        )
+        hts_codes = hts_codes.with_columns(
+            hs4=pl.col("hts_code").str.slice(0, 4)
+        ).unique(subset=["hs4"]).sort("hs4").select("hs4").to_series().to_list()
+
         df1_imports = DataTrade.process_imports_exports(
             self, df1_imports, "imports"
         ).to_pandas()
 
-        base = alt.Chart(df1_imports).encode(
-            theta=alt.Theta(field="imports", type="quantitative").stack(True),
-            color=alt.Color(
-                scale=alt.Scale(
-                    domain=df1_imports["country"].to_list(), range=self.color_palette
-                ),
-                field="country",
-                type="nominal",
-                legend=alt.Legend(
-                    title="Country",
-                    labelFontSize=12,
-                    titleFontSize=14,
-                    symbolType="square",
-                    symbolSize=100,
-                ),
-            ),
-            tooltip=["country", "imports"],
-            order=alt.Order(field="imports", sort="descending"),
-        )
-
-        pie = base.mark_arc(outerRadius=200).encode()
-        text = (
-            base.mark_text(radius=220, size=10)
-            .encode(
-                text="percent:N",
+        if (df1_imports["imports"] == 0).all():
+            warning_chart = alt.Chart(pd.DataFrame({
+                "text": ["No import data available for this selection."]
+            })).mark_text(
+                align="center",
+                baseline="middle",
+                size=20,
+                color="crimson"
+            ).encode(
+                text="text:N"
+            ).properties(
+                width=400,
+                height=100
             )
-            .transform_filter(alt.datum.percent_num >= 1.0)
-        )
 
-        pie = (pie + text).properties(
-            width=700,
-            height=500,
-        )
-
-        if not third_dropdown:
-            pie = pie.properties(
-                title=f"Time: {frequency} / {second_dropdown}",
-            ).configure_title(
-                anchor="middle",
-                color="black",
-            )
+            pie = warning_chart
         else:
-            pie = pie.properties(
-                title=f"Time: {frequency} / {second_dropdown} / {third_dropdown}",
-            ).configure_title(
-                anchor="middle",
-                color="black",
+            base = alt.Chart(df1_imports).encode(
+                theta=alt.Theta(field="imports", type="quantitative").stack(True),
+                color=alt.Color(
+                    scale=alt.Scale(
+                        domain=df1_imports["country"].to_list(), range=self.color_palette
+                    ),
+                    field="country",
+                    type="nominal",
+                    legend=alt.Legend(
+                        title="Country",
+                        labelFontSize=12,
+                        titleFontSize=14,
+                        symbolType="square",
+                        symbolSize=100,
+                    ),
+                ),
+                tooltip=["country", "imports"],
+                order=alt.Order(field="imports", sort="descending"),
             )
-        return pie
+
+            pie = base.mark_arc(outerRadius=200).encode()
+            text = (
+                base.mark_text(radius=220, size=10)
+                .encode(
+                    text="percent:N",
+                )
+                .transform_filter(alt.datum.percent_num >= 1.0)
+            )
+
+            pie = (pie + text).properties(
+                width=700,
+                height=500,
+            )
+
+            if not third_dropdown:
+                pie = pie.properties(
+                    title=f"Time: {frequency} / {second_dropdown}",
+                ).configure_title(
+                    anchor="middle",
+                    color="black",
+                )
+            else:
+                pie = pie.properties(
+                    title=f"Time: {frequency} / {second_dropdown} / {third_dropdown}",
+                ).configure_title(
+                    anchor="middle",
+                    color="black",
+                )
+        return pie, hts_codes
 
     def gen_exports_chart(
         self,
@@ -228,57 +257,84 @@ class DataGraph(DataTrade):
             level_filter=level_filter,
             datetime=datetime,
         )
+
+        hts_codes = DataTrade.process_int_jp(
+            self,
+            level=level,
+            time_frame=time_frame,
+        )
+        hts_codes = hts_codes.with_columns(
+            hs4=pl.col("hts_code").str.slice(0, 4)
+        ).unique(subset=["hs4"]).sort("hs4").select("hs4").to_series().to_list()
+
         df1_exports = DataTrade.process_imports_exports(
             self, df1_exports, "exports"
         ).to_pandas()
 
-        base = alt.Chart(df1_exports).encode(
-            theta=alt.Theta(field="exports", type="quantitative").stack(True),
-            color=alt.Color(
-                scale=alt.Scale(
-                    domain=df1_exports["country"].to_list(), range=self.color_palette
-                ),
-                field="country",
-                type="nominal",
-                legend=alt.Legend(
-                    title="Country",
-                    labelFontSize=12,
-                    titleFontSize=14,
-                    symbolType="square",
-                    symbolSize=100,
-                ),
-            ),
-            tooltip=["country", "exports"],
-            order=alt.Order(field="exports", sort="descending"),
-        )
-
-        pie = base.mark_arc(outerRadius=200).encode()
-        text = (
-            base.mark_text(radius=220, size=10)
-            .encode(text="percent:N")
-            .transform_filter(alt.datum.percent_num >= 1.0)
-        )
-
-        pie = (pie + text).properties(
-            width=700,
-            height=500,
-        )
-
-        if not third_dropdown:
-            pie = pie.properties(
-                title=f"Time: {frequency} / {second_dropdown}",
-            ).configure_title(
-                anchor="middle",
-                color="black",
+        if (df1_exports["exports"] == 0).all():
+            warning_chart = alt.Chart(pd.DataFrame({
+                "text": ["No export data available for this selection."]
+            })).mark_text(
+                align="center",
+                baseline="middle",
+                size=20,
+                color="crimson"
+            ).encode(
+                text="text:N"
+            ).properties(
+                width=400,
+                height=100
             )
+
+            pie = warning_chart
         else:
-            pie = pie.properties(
-                title=f"Time: {frequency} / {second_dropdown} / {third_dropdown}",
-            ).configure_title(
-                anchor="middle",
-                color="black",
+            base = alt.Chart(df1_exports).encode(
+                theta=alt.Theta(field="exports", type="quantitative").stack(True),
+                color=alt.Color(
+                    scale=alt.Scale(
+                        domain=df1_exports["country"].to_list(), range=self.color_palette
+                    ),
+                    field="country",
+                    type="nominal",
+                    legend=alt.Legend(
+                        title="Country",
+                        labelFontSize=12,
+                        titleFontSize=14,
+                        symbolType="square",
+                        symbolSize=100,
+                    ),
+                ),
+                tooltip=["country", "exports"],
+                order=alt.Order(field="exports", sort="descending"),
             )
-        return pie
+
+            pie = base.mark_arc(outerRadius=200).encode()
+            text = (
+                base.mark_text(radius=220, size=10)
+                .encode(text="percent:N")
+                .transform_filter(alt.datum.percent_num >= 1.0)
+            )
+
+            pie = (pie + text).properties(
+                width=700,
+                height=500,
+            )
+
+            if not third_dropdown:
+                pie = pie.properties(
+                    title=f"Time: {frequency} / {second_dropdown}",
+                ).configure_title(
+                    anchor="middle",
+                    color="black",
+                )
+            else:
+                pie = pie.properties(
+                    title=f"Time: {frequency} / {second_dropdown} / {third_dropdown}",
+                ).configure_title(
+                    anchor="middle",
+                    color="black",
+                )
+        return pie, hts_codes
 
     def gen_hts_chart(
         self,
