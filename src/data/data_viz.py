@@ -1,6 +1,7 @@
-from .data_process import DataTrade
-import pandas as pd
 import altair as alt
+import pandas as pd
+
+from .data_process import DataTrade
 
 
 def gen_pie_chart(
@@ -56,4 +57,3 @@ def gen_pie_chart(
     )
 
     return pie_chart
-
