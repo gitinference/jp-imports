@@ -934,6 +934,10 @@ class DataTrade(DataPull):
         df = df.fill_null(0).fill_nan(0)
         last_month = df.select(pl.col("date").max()).item()
 
+        hts_desc = self.process_hts_desc()
+        hts_desc_clean = hts_desc.unique(subset=["hs4"], keep="first")
+        df = df.join(hts_desc_clean, on="hs4", how="left", validate="m:m")
+
         df_last_month_imports = df.filter(
             (pl.col("date") == last_month)
             & (pl.col("rank_imports_change_year_over_year") != 0)
@@ -950,11 +954,18 @@ class DataTrade(DataPull):
             "rank_exports_change_year_over_year", descending=False
         )
 
-        top5_imports = df_imports_sorted.head(5)
-        last5_imports = df_imports_sorted.tail(5)
+        top_imports = df_imports_sorted.head(20)
+        last_imports = df_imports_sorted.tail(20)
 
-        top5_exports = df_exports_sorted.head(5)
-        last5_exports = df_exports_sorted.tail(5)
+        top_exports = df_exports_sorted.head(20)
+        last_exports = df_exports_sorted.tail(20)
 
-        return top5_imports, last5_imports, top5_exports, last5_exports
-
+        return top_imports, last_imports, top_exports, last_exports
+    
+    def process_hts_desc(self, ) -> pl.DataFrame:
+        df = pl.read_excel(f"{self.saving_dir}raw/hts_4_cats.xlsx", sheet_id=1).rename({
+            "HTS_4": "hs4",
+            "HTS_desc": "hts_desc"
+        })
+        df = df.group_by(pl.col("hs4", "hts_desc")).agg([])
+        return df
