@@ -947,7 +947,9 @@ class DataTrade(DataPull):
         return top_imports, last_imports, top_exports, last_exports
     
     def process_hts_desc(self, ) -> pl.DataFrame:
-        df = self.insert_int_org()
-        df = df.with_columns(hs4=pl.col("hts_code").str.slice(0, 4))
+        df = pl.read_excel(f"{self.saving_dir}raw/hts_4_cats.xlsx", sheet_id=1).rename({
+            "HTS_4": "hs4",
+            "HTS_desc": "hts_desc"
+        })
         df = df.group_by(pl.col("hs4", "hts_desc")).agg([])
         return df
