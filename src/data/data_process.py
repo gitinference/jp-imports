@@ -914,10 +914,10 @@ class DataTrade(DataPull):
         trade_type: str,
     ):
         hts_codes = hts_codes.with_columns(
-            hts_code_first2=pl.col("hts_code").str.slice(0, 2)
+            hts_code_first4=pl.col("hts_code").str.slice(0, 4)
         )
         hts_codes = (
-            hts_codes.select(pl.col("hts_code_first2").unique()).to_series().to_list()
+            hts_codes.select(pl.col("hts_code_first4").unique()).to_series().to_list()
         )
         hts_codes = sorted(hts_codes)
 
