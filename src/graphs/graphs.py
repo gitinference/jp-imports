@@ -360,8 +360,8 @@ class DataGraph(DataTrade):
         elif frequency == "fiscal":
             new_frequency = "fiscal_year"
         elif frequency == "quarterly":
-            new_frequency = frequency
             frequency = "qrt"
+            new_frequency = frequency
         else:
             new_frequency = frequency
 
@@ -372,8 +372,17 @@ class DataGraph(DataTrade):
             self, hts_data, hts_codes, new_frequency, trade_type
         )
 
-        x_axis = data[new_frequency]
+        x_axis = data['time_period']
         y_axis = data[trade_type]
+
+        x_values = data.select('time_period').unique().to_series().to_list()
+
+        if frequency == "monthly":
+            tick_vals = x_values[::6]
+        elif frequency == "qrt":
+            tick_vals = x_values[::3]
+        else:
+            tick_vals = x_values
 
         context = {
             "hts_codes": hts_codes,
@@ -390,10 +399,10 @@ class DataGraph(DataTrade):
             .mark_line(point=True)
             .encode(
                 x=alt.X(
-                    "x",
+                    "x:N",
                     axis=alt.Axis(
+                        values=tick_vals,
                         title=None,
-                        format="~d",
                     ),
                 ),
                 y=alt.Y(
@@ -405,10 +414,12 @@ class DataGraph(DataTrade):
                 ),
                 tooltip=[
                     alt.Tooltip(
-                        "x",
+                        'x',
+                        title='Period'
                     ),
                     alt.Tooltip(
                         "y",
+                        title=trade_type
                     ),
                 ],
             )
