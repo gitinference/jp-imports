@@ -428,7 +428,6 @@ class DataGraph(DataTrade):
             .configure_axis(gridColor="white", grid=True)
             .properties(
                 width="container",
-                height=200,
             )
             .configure_title(anchor="start", fontSize=16, color="#333333", offset=30)
         )
