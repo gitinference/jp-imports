@@ -914,23 +914,32 @@ class DataTrade(DataPull):
         trade_type: str,
     ):
         hts_codes = hts_codes.with_columns(
-            hts_code_first2=pl.col("hts_code").str.slice(0, 2)
+            hts_code_first4=pl.col("hts_code").str.slice(0, 4)
         )
         hts_codes = (
-            hts_codes.select(pl.col("hts_code_first2").unique()).to_series().to_list()
+            hts_codes.select(pl.col("hts_code_first4").unique()).to_series().to_list()
         )
         hts_codes = sorted(hts_codes)
 
         data = data.sort(new_frequency)
-        data = (
-            data.with_columns(
-                pl.col("hts_code").str.slice(0, 2).alias("hts_code_first2")
+
+        if new_frequency == 'qrt':
+            data = data.with_columns(
+                (pl.col("year").cast(pl.String) + '-q' + pl.col("qrt").cast(pl.String)).alias("time_period")
             )
-            .sort([new_frequency, "hts_code_first2"])
-            .group_by([new_frequency, "hts_code_first2"])
-            .agg(pl.col(trade_type).sum().alias(trade_type))
-        )
-        data = data[[new_frequency, "hts_code_first2", trade_type]]
+        elif new_frequency == 'month':
+            data = data.with_columns(
+                (pl.col("year").cast(pl.String) + '-' + pl.col("month").cast(pl.String)).alias("time_period")
+            )
+        else:
+            data = data.with_columns(
+                pl.col(new_frequency).cast(pl.String).alias("time_period")
+            )
+
+        data = data.sort(['time_period'])
+        data = data.group_by(['time_period']).agg(pl.col(trade_type).sum().alias(trade_type))
+        
+        data = data[['time_period', trade_type]]
         return data, hts_codes
 
     def process_hts_ranking_data(self, df: pl.DataFrame):
