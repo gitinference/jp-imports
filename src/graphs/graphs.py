@@ -222,16 +222,16 @@ class DataGraph(DataTrade):
         elif frequency == "Quarterly":
             time_frame = "qrt"
 
-            if second_dropdown == "Qrt 1":
+            if second_dropdown == "1":
                 start_month = 1
                 end_month = 3
-            elif second_dropdown == "Qrt 2":
+            elif second_dropdown == "2":
                 start_month = 4
                 end_month = 6
-            elif second_dropdown == "Qrt 3":
+            elif second_dropdown == "3":
                 start_month = 7
                 end_month = 9
-            elif second_dropdown == "Qrt 4":
+            elif second_dropdown == "4":
                 start_month = 10
                 end_month = 12
 
