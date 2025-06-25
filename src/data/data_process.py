@@ -175,7 +175,7 @@ class DataTrade(DataPull):
             if df.is_empty():
                 raise ValueError(f"Invalid HTS code: {level_filter}")
         elif level == "country":
-            df = df.filter(pl.col("country").str.starts_with(level_filter))
+            df = df.filter(pl.col("hts_code").str.starts_with(level_filter))
             if df.is_empty():
                 raise ValueError(f"Invalid Country code: {level_filter}")
         df = self.conversion(df)
@@ -360,7 +360,7 @@ class DataTrade(DataPull):
                 return df
 
             case ["fiscal", "country"]:
-                df = self.filter_data(base, ["fiscal_year", "country"])
+                df = self.filter_data(base, ["fiscal_year", "country", 'hts_code'])
                 df = df.with_columns(
                     fiscal_year=pl.when(pl.col("fiscal_year").is_null())
                     .then(pl.col("fiscal_year_right"))
@@ -368,9 +368,12 @@ class DataTrade(DataPull):
                     country=pl.when(pl.col("country").is_null())
                     .then(pl.col("country_right"))
                     .otherwise(pl.col("country")),
+                    hts_code=pl.when(pl.col("hts_code").is_null())
+                    .then(pl.col("hts_code_right"))
+                    .otherwise(pl.col("hts_code")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("fiscal_year_right", "country_right")
+                    pl.col("*").exclude("fiscal_year_right", "country_right", 'hts_code_right')
                 )
                 df = df.with_columns(
                     pl.col(
@@ -460,7 +463,7 @@ class DataTrade(DataPull):
                 return df
 
             case ["qrt", "country"]:
-                df = self.filter_data(base, ["year", "qrt", "country"])
+                df = self.filter_data(base, ["year", "qrt", "country", 'hts_code'])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
@@ -471,9 +474,12 @@ class DataTrade(DataPull):
                     country=pl.when(pl.col("country").is_null())
                     .then(pl.col("country_right"))
                     .otherwise(pl.col("country")),
+                    hts_code=pl.when(pl.col("hts_code").is_null())
+                    .then(pl.col("hts_code_right"))
+                    .otherwise(pl.col("hts_code")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("year_right", "qrt_right", "country_right")
+                    pl.col("*").exclude("year_right", "qrt_right", "country_right", 'hts_code_right')
                 )
                 df = df.with_columns(
                     pl.col(
@@ -563,7 +569,7 @@ class DataTrade(DataPull):
                 return df
 
             case ["monthly", "country"]:
-                df = self.filter_data(base, ["year", "month", "country"])
+                df = self.filter_data(base, ["year", "month", "country", 'hts_code'])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
@@ -574,9 +580,12 @@ class DataTrade(DataPull):
                     country=pl.when(pl.col("country").is_null())
                     .then(pl.col("country_right"))
                     .otherwise(pl.col("country")),
+                    hts_code=pl.when(pl.col("hts_code").is_null())
+                    .then(pl.col("hts_code_right"))
+                    .otherwise(pl.col("hts_code")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("year_right", "month_right", "country_right")
+                    pl.col("*").exclude("year_right", "month_right", "country_right", 'hts_code_right')
                 )
                 df = df.with_columns(
                     pl.col(
