@@ -118,9 +118,17 @@ class DataGraph(DataTrade):
             level=level,
             time_frame=time_frame,
         )
-        hts_codes = hts_codes.with_columns(
-            hs4=pl.col("hts_code").str.slice(0, 4)
-        ).unique(subset=["hs4"]).sort("hs4").select("hs4").to_series().to_list()
+        hts_codes = (
+            hts_codes.with_columns(
+                hs4=pl.col("hts_code").str.slice(0, 4)
+            )
+            .filter(pl.col("hs4") != "0000")
+            .unique(subset=["hs4"])
+            .sort("hs4")
+            .select("hs4")
+            .to_series()
+            .to_list()
+        )
 
         df1_imports = DataTrade.process_imports_exports(
             self, df1_imports, "imports"
@@ -263,9 +271,17 @@ class DataGraph(DataTrade):
             level=level,
             time_frame=time_frame,
         )
-        hts_codes = hts_codes.with_columns(
-            hs4=pl.col("hts_code").str.slice(0, 4)
-        ).unique(subset=["hs4"]).sort("hs4").select("hs4").to_series().to_list()
+        hts_codes = (
+            hts_codes.with_columns(
+                hs4=pl.col("hts_code").str.slice(0, 4)
+            )
+            .filter(pl.col("hs4") != "0000")
+            .unique(subset=["hs4"])
+            .sort("hs4")
+            .select("hs4")
+            .to_series()
+            .to_list()
+        )
 
         df1_exports = DataTrade.process_imports_exports(
             self, df1_exports, "exports"
