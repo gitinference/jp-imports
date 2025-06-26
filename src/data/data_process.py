@@ -647,12 +647,10 @@ class DataTrade(DataPull):
         results = result.with_columns(
             pl.col("moving_price_imports")
             .rank("ordinal")
-            .over("date")
             .alias("rank_imports")
             .cast(pl.Int64),
             pl.col("moving_price_exports")
             .rank("ordinal")
-            .over("date")
             .alias("rank_exports")
             .cast(pl.Int64),
             upper_band_imports=pl.col("moving_price_imports")
@@ -975,11 +973,11 @@ class DataTrade(DataPull):
             "rank_exports_change_year_over_year", descending=False
         )
 
-        top_imports = df_imports_sorted.head(20)
-        last_imports = df_imports_sorted.tail(20)
+        top_imports = df_imports_sorted.tail(20)
+        last_imports = df_imports_sorted.head(20)
 
-        top_exports = df_exports_sorted.head(20)
-        last_exports = df_exports_sorted.tail(20)
+        top_exports = df_exports_sorted.tail(20)
+        last_exports = df_exports_sorted.head(20)
 
         return top_imports, last_imports, top_exports, last_exports
     
