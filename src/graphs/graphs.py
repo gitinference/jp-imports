@@ -360,6 +360,7 @@ class DataGraph(DataTrade):
         level_filter: str = "",
         frequency: str = "",
         trade_type: str = "",
+        data_type: str = ''
     ):
         hts_data = DataTrade.process_int_jp(
             self,
@@ -385,7 +386,7 @@ class DataGraph(DataTrade):
             self, level_filter="", level="hts", time_frame=frequency
         )
         data, hts_codes = DataTrade.process_hts_data(
-            self, hts_data, hts_codes, new_frequency, trade_type
+            self, hts_data, hts_codes, new_frequency, trade_type, data_type
         )
 
         x_axis = data['time_period']
