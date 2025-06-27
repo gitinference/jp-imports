@@ -1,6 +1,6 @@
 import os
 from datetime import datetime as dt
-
+import logging
 import polars as pl
 
 from .data_pull import DataPull
@@ -937,6 +937,9 @@ class DataTrade(DataPull):
             exprs
         ).rename({col: f"{col}_lag" for col in value_columns})
 
+        logging.info(lag_df.sort(date))
+        logging.info(df.sort(date))
+
         df = df.join(
             lag_df,
             on=date,
@@ -945,9 +948,17 @@ class DataTrade(DataPull):
 
         for col in value_columns:
             if (data_type == "cambio_porcentual"):
-                transformation = (((pl.col(col).cast(pl.Float64) - pl.col(f"{col}_lag").cast(pl.Float64)))/((pl.col(f"{col}_lag").cast(pl.Float64)))*100).alias(col)
+                transformation = (
+                    pl.when(pl.col(f"{col}_lag").cast(pl.Float64) == 0)
+                    .then(0.0)
+                    .otherwise(
+                        (((pl.col(col).cast(pl.Float64)) - pl.col(f"{col}_lag").cast(pl.Float64)) /
+                        pl.col(f"{col}_lag").cast(pl.Float64)) * 100
+                    )
+                    .alias(col)
+                )
             else:
-                transformation = (pl.col(col).cast(pl.Float64) - pl.col(f"{col}_lag").cast(pl.Float64)).alias(col)
+                transformation = ((pl.col(col).cast(pl.Float64)) - (pl.col(f"{col}_lag").cast(pl.Float64))).alias(col)
                 
             df = df.with_columns(
                 transformation
@@ -962,7 +973,7 @@ class DataTrade(DataPull):
         elif frequency == 'fiscal_year':
             df = df.filter(pl.col("time_period") > "2010")
         
-        df.write_csv(f'{self.saving_dir}{data_type}_hts.csv')
+        df = df.fill_null(0).fill_nan(0)
         return df
 
     def process_hts_data(
