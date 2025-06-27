@@ -956,6 +956,8 @@ class DataTrade(DataPull):
         hts_desc = self.process_hts_desc()
         hts_desc_clean = hts_desc.unique(subset=["hs4"], keep="first")
         df = df.join(hts_desc_clean, on="hs4", how="left", validate="m:m")
+        df = df.filter(pl.col("moving_price_imports") > 0)
+        df = df.filter(pl.col("moving_price_exports") > 0)
 
         df_last_month_imports = df.filter(
             (pl.col("date") == last_month)
