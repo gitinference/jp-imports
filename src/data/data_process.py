@@ -912,6 +912,58 @@ class DataTrade(DataPull):
         )
         df = df.with_columns(pl.format("{}%", pl.col("percent_num")).alias("percent"))
         return df
+    
+    def apply_data_type(self, df: pl.DataFrame, data_type: str, frequency: str, trade_type: str):
+        if frequency == 'month':
+            date = ['year', 'month']
+            year = 'year'
+            add = 'month'
+        elif frequency == 'qrt':
+            date = ['year', 'qrt']
+            year = 'year'
+            add = 'qrt'
+        elif frequency == 'fiscal_year':
+            date = ['fiscal_year']
+            year = 'fiscal_year'
+            add = ''
+        else:
+            date = ['year']
+            year = 'year'
+            add = ''
+        exprs = [(pl.col(year) + 1).alias(year), (pl.col(add).alias(add))] if add else [(pl.col(year) + 1).alias(year)]
+        value_columns = [col for col in df.columns if col not in {"year", "month", "fiscal_year", "date", "qrt", "time_period"}]
+
+        lag_df = df.select(date + value_columns).with_columns(
+            exprs
+        ).rename({col: f"{col}_lag" for col in value_columns})
+
+        df = df.join(
+            lag_df,
+            on=date,
+            how="left"
+        )
+
+        for col in value_columns:
+            if (data_type == "cambio_porcentual"):
+                transformation = (((pl.col(col).cast(pl.Float64) - pl.col(f"{col}_lag").cast(pl.Float64)))/((pl.col(f"{col}_lag").cast(pl.Float64)))*100).alias(col)
+            else:
+                transformation = (pl.col(col).cast(pl.Float64) - pl.col(f"{col}_lag").cast(pl.Float64)).alias(col)
+                
+            df = df.with_columns(
+                transformation
+            )
+        df = df.select([col for col in df.columns if "_lag" not in col])
+
+        df = df.filter(pl.col(year) != 2009)
+        if frequency == 'qrt':
+            df = df.filter(pl.col("time_period") >= "2010-q4")
+        elif frequency == 'month':
+            df = df.filter(pl.col("time_period") >= "2010-10")
+        elif frequency == 'fiscal_year':
+            df = df.filter(pl.col("time_period") > "2010")
+        
+        df.write_csv(f'{self.saving_dir}{data_type}_hts.csv')
+        return df
 
     def process_hts_data(
         self,
@@ -919,6 +971,7 @@ class DataTrade(DataPull):
         hts_codes: pl.DataFrame,
         new_frequency: str,
         trade_type: str,
+        data_type: str,
     ):
         hts_codes = hts_codes.with_columns(
             hts_code_first4=pl.col("hts_code").str.slice(0, 4)
@@ -931,22 +984,29 @@ class DataTrade(DataPull):
         data = data.sort(new_frequency)
 
         if new_frequency == 'qrt':
+            group_expr = ['year', 'qrt', 'time_period']
             data = data.with_columns(
                 (pl.col("year").cast(pl.String) + '-q' + pl.col("qrt").cast(pl.String)).alias("time_period")
             )
         elif new_frequency == 'month':
+            group_expr = ['year', 'month', 'time_period']
             data = data.with_columns(
                 (pl.col("year").cast(pl.String) + '-' + pl.col("month").cast(pl.String).str.zfill(2)).alias("time_period")
             )
+        elif new_frequency == 'fiscal_year':
+            group_expr = ['fiscal_year', 'time_period']
+            data = data.with_columns(
+                pl.col('fiscal_year').cast(pl.String).alias("time_period")
+            )
         else:
+            group_expr = ['year', 'time_period']
             data = data.with_columns(
                 pl.col(new_frequency).cast(pl.String).alias("time_period")
             )
-
-        data = data.group_by(['time_period']).agg(pl.col(trade_type).sum().alias(trade_type))
+        data = data.group_by(group_expr).agg(pl.col(trade_type).sum().alias(trade_type))
+        if data_type != 'nivel':
+            data = self.apply_data_type(data, data_type, new_frequency, trade_type)
         data = data.sort(['time_period'])
-        
-        data = data[['time_period', trade_type]]
         return data, hts_codes
 
     def process_hts_ranking_data(self, df: pl.DataFrame):
