@@ -936,15 +936,15 @@ class DataTrade(DataPull):
             )
         elif new_frequency == 'month':
             data = data.with_columns(
-                (pl.col("year").cast(pl.String) + '-' + pl.col("month").cast(pl.String)).alias("time_period")
+                (pl.col("year").cast(pl.String) + '-' + pl.col("month").cast(pl.String).str.zfill(2)).alias("time_period")
             )
         else:
             data = data.with_columns(
                 pl.col(new_frequency).cast(pl.String).alias("time_period")
             )
 
-        data = data.sort(['time_period'])
         data = data.group_by(['time_period']).agg(pl.col(trade_type).sum().alias(trade_type))
+        data = data.sort(['time_period'])
         
         data = data[['time_period', trade_type]]
         return data, hts_codes

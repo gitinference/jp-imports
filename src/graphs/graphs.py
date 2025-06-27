@@ -406,13 +406,12 @@ class DataGraph(DataTrade):
 
         frequency = frequency.capitalize()
         trade_type = trade_type.capitalize()
-        title = f"Frequency: {frequency} | HTS Code: {level_filter} | Trade Type: {trade_type}"
 
         df = pd.DataFrame({"x": x_axis, "y": y_axis})
 
         chart = (
             alt.Chart(df)
-            .mark_line(point=True)
+            .mark_line()
             .encode(
                 x=alt.X(
                     "x:N",
@@ -439,13 +438,11 @@ class DataGraph(DataTrade):
                     ),
                 ],
             )
-            .properties(title=title)
             .configure_view(fill="#e6f7ff")
             .configure_axis(gridColor="white", grid=True)
             .properties(
                 width="container",
             )
-            .configure_title(anchor="start", fontSize=16, color="#333333", offset=30)
         )
         return chart, context
 
