@@ -967,10 +967,10 @@ class DataTrade(DataPull):
         )
 
         df_imports_sorted = df_last_month_imports.sort(
-            "rank_imports_change_year_over_year", descending=False
+            "moving_price_imports", descending=False
         )
         df_exports_sorted = df_last_month_exports.sort(
-            "rank_exports_change_year_over_year", descending=False
+            "moving_price_exports", descending=False
         )
 
         top_imports = df_imports_sorted.tail(20)
