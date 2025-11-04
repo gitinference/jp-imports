@@ -1,6 +1,6 @@
 [project]
 name = "jp-imports"
-version = "1.1.4"
+version = "1.1.5"
 authors = [{ name = "Alejandro Ousland", email = "alejandro.ouslan@upr.edu" }]
 description = "Add your description here"
 readme = "README.md"
@@ -16,6 +16,7 @@ dependencies = [
   "requests>=2.32.3",
   "sqlmodel>=0.0.22",
   "tqdm>=4.67.1",
+  "urllib3>=2.5.0",
 ]
 
 [dependency-groups]
