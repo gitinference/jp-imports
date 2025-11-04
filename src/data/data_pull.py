@@ -1,21 +1,21 @@
+import datetime
+import logging
+import os
+import zipfile
+
 import comtradeapicall
+import pandas as pd
+import polars as pl
+import requests
+import urllib3
+from tqdm import tqdm
+
 from ..models import (
     get_conn,
+    init_com_trade_data_table,
     init_int_trade_data_table,
     init_jp_trade_data_table,
-    init_com_trade_data_table,
 )
-from tqdm import tqdm
-import polars as pl
-import pandas as pd
-import datetime
-import pandas as pd
-import datetime
-import requests
-import logging
-import zipfile
-import urllib3
-import os
 
 
 class DataPull:
@@ -323,7 +323,10 @@ class DataPull:
         )
         for year in range(2010, datetime.date.today().year + 1):
             for month in range(1, 13):
-                if year == datetime.date.today().year and month >= datetime.date.today().month:
+                if (
+                    year == datetime.date.today().year
+                    and month >= datetime.date.today().month
+                ):
                     continue
                 for code in codes:
                     if (

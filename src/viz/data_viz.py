@@ -4,10 +4,12 @@ import altair as alt
 
 class DataViz(DataTrade):
     def __init__(
-        self, saving_dir: str = "data/", database_url: str = "duckdb:///data.ddb"
+        self,
+        saving_dir: str = "data/",
+        database_file: str = "data.ddb",
+        log_file: str = "data_process.log",
     ):
-        super().__init__(saving_dir, database_url)
-
+        super().__init__(saving_dir, database_file, log_file)
 
     def gen_pie_chart(self, time_frame: str):
         """
@@ -23,14 +25,18 @@ class DataViz(DataTrade):
 
         # Verifica que el time_frame sea válido
         if time_frame not in ["monthly", "qrt", "yearly"]:
-            raise ValueError("El parámetro time_frame debe ser 'monthly', 'qrt' o 'yearly'.")
-        
+            raise ValueError(
+                "El parámetro time_frame debe ser 'monthly', 'qrt' o 'yearly'."
+            )
+
         df = self.process_int_jp(level="country", time_frame=time_frame)
         # Crear el gráfico de pastel
-        pie_chart = alt.Chart(df).mark_arc().encode(
-        theta="value:Q",
-        color="country:N",
-        tooltip=["country", "value"]
-            ).properties(title=f"Distribución por país ({time_frame.capitalize()})")
+        pie_chart = (
+            alt.Chart(df)
+            .mark_arc()
+            .encode(theta="value:Q", color="country:N", tooltip=["country", "value"])
+            .properties(title=f"Distribución por país ({time_frame.capitalize()})")
+        )
 
         return pie_chart
+
