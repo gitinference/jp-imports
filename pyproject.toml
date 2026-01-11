@@ -1,23 +1,17 @@
 [project]
 name = "jp-imports"
-version = "1.1.5"
-authors = [{ name = "Alejandro Ousland", email = "alejandro.ouslan@upr.edu" }]
+version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = "==3.12.*"
-dependencies = [
-  "altair[all]>=5.5.0",
-  "comtradeapicall>=1.2.1",
-  "duckdb>=1.2.2",
-  "pandas>=2.2.3",
-  "polars>=1.16.0",
-  "pyarrow>=19.0.0",
-  "pytest>=8.3.4",
-  "requests>=2.32.3",
-  "sqlmodel>=0.0.22",
-  "tqdm>=4.67.1",
-  "urllib3>=2.5.0",
+authors = [
+    { name = "Alejandro Ouslan", email = "alejandro.ouslan@upr.edu" }
 ]
+requires-python = ">=3.14"
+dependencies = []
 
-[dependency-groups]
-dev = ["ipykernel>=6.29.5", "jupyter>=1.1.1", "pyvim>=3.0.3"]
+[project.scripts]
+jp-imports = "jp_imports:main"
+
+[build-system]
+requires = ["uv_build>=0.9.24,<0.10.0"]
+build-backend = "uv_build"
