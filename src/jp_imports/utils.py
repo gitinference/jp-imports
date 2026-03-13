@@ -1,11 +1,11 @@
 import datetime
 import logging
-import os
 import zipfile
 
 import comtradeapicall
+from jp_tools import Download
 import polars as pl
-import requests
+import duckdb
 
 
 class DataPull:
@@ -22,7 +22,7 @@ class DataPull:
     ):
         self.saving_dir = saving_dir
         self.data_file = database_file
-        self.conn = get_conn(self.data_file)
+        self.conn = duckdb.connect()
 
         logging.basicConfig(
             level=logging.INFO,
@@ -30,13 +30,6 @@ class DataPull:
             datefmt="%d-%b-%y %H:%M:%S",
             filename=log_file,
         )
-        # Check if the saving directory exists
-        if not os.path.exists(self.saving_dir + "raw"):
-            os.makedirs(self.saving_dir + "raw")
-        if not os.path.exists(self.saving_dir + "processed"):
-            os.makedirs(self.saving_dir + "processed")
-        if not os.path.exists(self.saving_dir + "external"):
-            os.makedirs(self.saving_dir + "external")
 
     def pull_int_org(self) -> None:
         """
