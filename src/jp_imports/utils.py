@@ -48,15 +48,72 @@ class DataPull:
         None
         """
         file_path = Path(f"{self.saving_dir}raw/jp_data.parquet")
-        if not os.path.exists(self.saving_dir + "external/code_classification.json"):
+        if not file_path.exists() or update:
 
             Download(
-                url="https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_classification.json",
+                url="https://datos.estadisticas.pr/dataset/027ddbe1-c51c-46bf-aec3-a62d5d7e8539/resource/b8367825-a3de-41cf-8794-e42c10987b6f/download/ftrade_all_iepr.csv",
                 filename=f"{tempfile.gettempdir()}/{hash(file_path)}.csv",
             )
             df = pl.read_csv(
                 f"{tempfile.gettempdir()}/{hash(file_path)}.csv", ignore_errors=True
             )
+
+            agri_prod = pl.read_json(
+                f"{self.saving_dir}external/code_agr.json"
+            ).transpose()
+            agri_prod = (
+                agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
+                .to_series()
+                .to_list()
+            )
+            df = df.rename({col: col.lower() for col in df.collect_schema().names()})
+            df = df.with_columns(
+                date=pl.col("year").cast(pl.String)
+                + "-"
+                + pl.col("month").cast(pl.String)
+                + "-01",
+                unit_1=pl.col("unit_1").str.to_lowercase(),
+                unit_2=pl.col("unit_2").str.to_lowercase(),
+                hts_code=pl.col("commodity_code")
+                .cast(pl.String)
+                .str.zfill(10)
+                .str.replace("'", ""),
+                trade_id=pl.when(pl.col("trade") == "i").then(1).otherwise(2),
+            )
+
+            df = df.with_columns(pl.col("date").cast(pl.Date))
+
+            df = df.with_columns(
+                agri_prod=pl.when(pl.col("hts_code").is_in(agri_prod))
+                .then(1)
+                .otherwise(0)
+            )
+            df = df.with_columns(
+                sitc=pl.when(pl.col("sitc_short_desc").str.starts_with("Civilian"))
+                .then(9998)
+                .when(pl.col("sitc_short_desc").str.starts_with("-"))
+                .then(9999)
+                .otherwise(pl.col("sitc"))
+            )
+            df = df.filter(pl.col("hts_code").is_not_null())
+            df = df.select(
+                pl.col(
+                    "date",
+                    "country",
+                    "trade_id",
+                    "agri_prod",
+                    "hts_code",
+                    "hts_desc",
+                    "data",
+                    "qty_1",
+                    "unit_1",
+                    "qty_2",
+                    "unit_2",
+                    "sitc",
+                    "naics",
+                )
+            )
+
             df.write_parquet(f"{self.saving_dir}/raw/jp_data.parquet")
 
         logging.info("Pulling data from the Puerto Rico Institute of Statistics")
