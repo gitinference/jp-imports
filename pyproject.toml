@@ -5,7 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 authors = [{ name = "Alejandro Ouslan", email = "alejandro.ouslan@upr.edu" }]
 requires-python = ">=3.12"
-dependencies = ["censusforge>=0.6.1", "jp-tools>=0.5.8"]
+dependencies = [
+    "censusforge>=0.6.1",
+    "comtradeapicall>=1.3.0",
+    "duckdb>=1.5.0",
+    "jp-tools>=0.5.8",
+    "polars>=1.39.0",
+]
 
 [project.scripts]
 jp-imports = "jp_imports:main"
