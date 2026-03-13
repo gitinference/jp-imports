@@ -1,6 +1,8 @@
 import datetime
 import logging
 import zipfile
+from pathlib import Path
+import tempfile
 
 import comtradeapicall
 from jp_tools import Download
@@ -32,125 +34,7 @@ class DataPull:
             filename=log_file,
         )
 
-    def pull_int_org(self) -> None:
-        """
-        Pulls data from the Puerto Rico Institute of Statistics. Saves them in the
-            raw directory as a parquet file.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        None
-        """
-        Download(
-            url="http://www.estadisticas.gobierno.pr/iepr/LinkClick.aspx?fileticket=JVyYmIHqbqc%3d&tabid=284&mid=244930",
-            filename=(self.saving_dir + "raw/tmp.zip"),
-        )
-        # Extract the zip file
-        with zipfile.ZipFile(self.saving_dir + "raw/tmp.zip", "r") as zip_ref:
-            zip_ref.extractall(f"{self.saving_dir}raw/")
-
-        # Extract additional zip files
-        additional_files = ["EXPORT_HTS10_ALL.zip", "IMPORT_HTS10_ALL.zip"]
-        for additional_file in additional_files:
-            additional_file_path = os.path.join(
-                f"{self.saving_dir}raw/{additional_file}"
-            )
-            with zipfile.ZipFile(additional_file_path, "r") as zip_ref:
-                zip_ref.extractall(os.path.join(f"{self.saving_dir}raw/"))
-
-        # Concatenate the files
-        imports = pl.scan_csv(
-            self.saving_dir + "raw/IMPORT_HTS10_ALL.csv", ignore_errors=True
-        )
-        exports = pl.scan_csv(
-            self.saving_dir + "raw/EXPORT_HTS10_ALL.csv", ignore_errors=True
-        )
-        pl.concat([imports, exports], how="vertical").collect().write_parquet(
-            self.saving_dir + "raw/org_data.parquet"
-        )
-
-        logging.info(
-            "finished extracting data from the Puerto Rico Institute of Statistics"
-        )
-
-    def insert_int_org(self) -> pl.DataFrame:
-        if (
-            "inttradedata"
-            not in self.conn.sql("SHOW TABLES;").df().get("name").tolist()
-        ):
-            init_int_trade_data_table(self.data_file)
-        if self.conn.sql("SELECT * FROM 'inttradedata';").df().empty:
-            if not os.path.exists(f"{self.saving_dir}raw/org_data.parquet"):
-                self.pull_int_org()
-            if not os.path.exists(f"{self.saving_dir}external/code_agr.json"):
-                logging.debug(
-                    "https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json"
-                )
-                self.pull_file(
-                    url="https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json",
-                    filename=(f"{self.saving_dir}external/code_agr.json"),
-                )
-            agri_prod = pl.read_json(
-                f"{self.saving_dir}external/code_agr.json"
-            ).transpose()
-            agri_prod = (
-                agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
-                .to_series()
-                .to_list()
-            )
-            int_df = pl.scan_parquet(f"{self.saving_dir}raw/org_data.parquet")
-            int_df = int_df.rename(
-                {col: col.lower() for col in int_df.collect_schema().names()}
-            )
-            int_df = int_df.with_columns(
-                date=pl.col("year").cast(pl.String)
-                + "-"
-                + pl.col("month").cast(pl.String)
-                + "-01",
-                unit_1=pl.col("unit_1").str.to_lowercase(),
-                unit_2=pl.col("unit_2").str.to_lowercase(),
-                hts_code=pl.col("hts")
-                .cast(pl.String)
-                .str.zfill(10)
-                .str.replace("'", ""),
-                trade_id=pl.when(pl.col("import_export") == "i").then(1).otherwise(2),
-            ).rename({"value": "data"})
-
-            int_df = int_df.with_columns(pl.col("date").cast(pl.Date))
-
-            int_df = int_df.with_columns(hs4=pl.col("hts_code").str.slice(0, 4))
-
-            int_df = int_df.with_columns(
-                agri_prod=pl.when(pl.col("hs4").is_in(agri_prod)).then(1).otherwise(0)
-            )
-
-            int_df = int_df.select(
-                pl.col(
-                    "date",
-                    "country",
-                    "trade_id",
-                    "agri_prod",
-                    "hts_code",
-                    "hts_desc",
-                    "data",
-                    "qty_1",
-                    "unit_1",
-                    "qty_2",
-                    "unit_2",
-                )
-            ).collect()
-
-            self.conn.sql("INSERT INTO 'inttradedata' BY NAME SELECT * FROM int_df;")
-            logging.info("finished inserting data into the database")
-            return self.conn.sql("SELECT * FROM 'inttradedata';").pl()
-        else:
-            return self.conn.sql("SELECT * FROM 'inttradedata';").pl()
-
-    def pull_int_jp(self, update: bool = False) -> None:
+    def pull_int_jp(self, update: bool = False) -> pl.DataFrame:
         """
         Pulls data from the Puerto Rico Institute of Statistics used by the JP.
             Saved them in the raw directory as parquet files.
@@ -163,29 +47,20 @@ class DataPull:
         -------
         None
         """
+        file_path = Path(f"{self.saving_dir}raw/jp_data.parquet")
         if not os.path.exists(self.saving_dir + "external/code_classification.json"):
-            logging.debug(
-                "pull file from https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_classification.json"
-            )
-            self.pull_file(
-                url="https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_classification.json",
-                filename=(self.saving_dir + "external/code_classification.json"),
-            )
 
-        if not os.path.exists(self.saving_dir + "raw/jp_data.parquet") or update:
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-            logging.debug(
-                "https://datos.estadisticas.pr/dataset/027ddbe1-c51c-46bf-aec3-a62d5d7e8539/resource/b8367825-a3de-41cf-8794-e42c10987b6f/download/ftrade_all_iepr.csv"
+            Download(
+                url="https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_classification.json",
+                filename=f"{tempfile.gettempdir()}/{hash(file_path)}.csv",
             )
-            url = "https://datos.estadisticas.pr/dataset/027ddbe1-c51c-46bf-aec3-a62d5d7e8539/resource/b8367825-a3de-41cf-8794-e42c10987b6f/download/ftrade_all_iepr.csv"
-            self.pull_file(
-                url=url, filename=(self.saving_dir + "raw/jp_data.csv"), verify=False
+            df = pl.read_csv(
+                f"{tempfile.gettempdir()}/{hash(file_path)}.csv", ignore_errors=True
             )
-            pl.read_csv(
-                f"{self.saving_dir}/raw/jp_data.csv", ignore_errors=True
-            ).write_parquet(f"{self.saving_dir}/raw/jp_data.parquet")
+            df.write_parquet(f"{self.saving_dir}/raw/jp_data.parquet")
 
         logging.info("Pulling data from the Puerto Rico Institute of Statistics")
+        return pl.read_parquet(file_path)
 
     def insert_int_jp(self) -> pl.DataFrame:
         if "jptradedata" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
