@@ -1,14 +1,14 @@
 import datetime
+import importlib.resources as resources
 import logging
-import zipfile
-from pathlib import Path
+import os
 import tempfile
+from pathlib import Path
 
 import comtradeapicall
-from jp_tools import Download
-import polars as pl
-import os
 import duckdb
+import polars as pl
+from jp_tools import download
 
 
 class DataPull:
@@ -50,7 +50,7 @@ class DataPull:
         file_path = Path(f"{self.saving_dir}raw/jp_data.parquet")
         if not file_path.exists() or update:
 
-            Download(
+            download(
                 url="https://datos.estadisticas.pr/dataset/027ddbe1-c51c-46bf-aec3-a62d5d7e8539/resource/b8367825-a3de-41cf-8794-e42c10987b6f/download/ftrade_all_iepr.csv",
                 filename=f"{tempfile.gettempdir()}/{hash(file_path)}.csv",
             )
@@ -59,7 +59,7 @@ class DataPull:
             )
 
             agri_prod = pl.read_json(
-                f"{self.saving_dir}external/code_agr.json"
+                str(resources.files("jp_imports").joinpath("resources/code_agr.json"))
             ).transpose()
             agri_prod = (
                 agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
@@ -114,9 +114,8 @@ class DataPull:
                 )
             )
 
-            df.write_parquet(f"{self.saving_dir}/raw/jp_data.parquet")
+            df.write_parquet(file_path)
 
-        logging.info("Pulling data from the Puerto Rico Institute of Statistics")
         return pl.read_parquet(file_path)
 
     def insert_int_jp(self) -> pl.DataFrame:
