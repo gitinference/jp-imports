@@ -333,7 +333,7 @@ class DataPull:
                 f"SELECT * FROM '{self.saving_dir}raw/census-hts-imports-{state}-*.parquet';"
             ).pl()
 
-    def pull_census_naics(self, exports: bool, state: str) -> None:
+    def pull_census_naics(self, exports: bool, state: str) -> pl.DataFrame:
         """
         Pulls NAICS data from the Census and saves them in a parquet file.
 
@@ -352,62 +352,58 @@ class DataPull:
         -------
         None
         """
-        empty_df = [
-            pl.Series("date", dtype=pl.Datetime),
-            pl.Series("census_value", dtype=pl.Int64),
-            pl.Series("comm_level", dtype=pl.String),
-            pl.Series("naics_code", dtype=pl.String),
-            pl.Series("country_name", dtype=pl.String),
-            pl.Series("contry_code", dtype=pl.String),
-        ]
-        census_df = pl.DataFrame(empty_df)
-        base_url = "https://api.census.gov/data/timeseries/"
-        key = os.getenv("CENSUS_API_KEY")
 
+        for _year in range(2010, 2023):
+            exports_path = Path(
+                f"{self.saving_dir}raw/census-naics-exports-{state}-{_year}.parquet"
+            )
+            imports_path = Path(
+                f"{self.saving_dir}raw/census-naics-imports-{state}-{_year}.parquet"
+            )
+
+            if exports_path.exists() and imports_path.exists():
+                continue
+
+            req_exports = CensusAPI().query(
+                dataset="timeseries-intltrade-exports-statenaics",
+                params_list=[
+                    "CTY_CODE",
+                    "CTY_NAME",
+                    "ALL_VAL_MO",
+                    "COMM_LVL",
+                    "NAICS",
+                ],
+                year=_year,
+                geography="state",
+                geography_filter=state,
+                skip_checks=True,
+            )
+
+            req_imports = CensusAPI().query(
+                dataset="timeseries-intltrade-imports-statenaics",
+                params_list=[
+                    "CTY_CODE",
+                    "CTY_NAME",
+                    "GEN_VAL_MO",
+                    "COMM_LVL",
+                    "NAICS",
+                ],
+                year=_year,
+                geography="state",
+                geography_filter=state,
+                skip_checks=True,
+            )
+
+            df_exports = pl.DataFrame(req_exports)
+            df_exports.write_parquet(exports_path)
+
+            df_imports = pl.DataFrame(req_imports)
+            df_imports.write_parquet(imports_path)
         if exports:
-            param = "CTY_CODE,CTY_NAME,ALL_VAL_MO,COMM_LVL,NAICS"
-            flow = "intltrade/exports/statenaics"
-            naming = {
-                "CTY_CODE": "contry_code",
-                "CTY_NAME": "country_name",
-                "ALL_VAL_MO": "census_value",
-                "COMM_LVL": "comm_level",
-                "NAICS": "naics_code",
-            }
-            saving_path = f"{self.saving_dir}/raw/census_naics_exports.parquet"
+            return self.conn.execute(
+                f"SELECT * FROM '{self.saving_dir}raw/census-naics-exports-{state}-*.parquet';"
+            ).pl()
         else:
-            param = "CTY_CODE,CTY_NAME,GEN_VAL_MO,COMM_LVL,NAICS"
-            flow = "intltrade/imports/statenaics"
-            naming = {
-                "CTY_CODE": "contry_code",
-                "CTY_NAME": "country_name",
-                "GEN_VAL_MO": "census_value",
-                "COMM_LVL": "comm_level",
-                "NAICS": "naics_code",
-            }
-            saving_path = f"{self.saving_dir}/raw/census_naics_imports.parquet"
-
-        for year in range(2010, datetime.date.today().year + 1):
-            url = f"{base_url}{flow}?get={param}&STATE={state}&key={key}&time={year}"
-            r = requests.get(url).json()
-            df = pl.DataFrame(r)
-            names = df.select(pl.col("column_0")).transpose()
-            df = df.drop("column_0").transpose()
-            df = df.rename(names.to_dicts().pop()).rename(naming)
-            df = df.with_columns(
-                date=(pl.col("time") + "-01").str.to_datetime("%Y-%m-%d")
-            )
-            df = df.select(
-                pl.col(
-                    "date",
-                    "census_value",
-                    "comm_level",
-                    "naics_code",
-                    "country_name",
-                    "contry_code",
-                )
-            )
-            df = df.with_columns(pl.col("census_value").cast(pl.Int64))
-            census_df = pl.concat([census_df, df], how="vertical")
-
-        census_df.write_parquet(saving_path)
+            return self.conn.execute(
+                f"SELECT * FROM '{self.saving_dir}raw/census-naics-imports-{state}-*.parquet';"
+            ).pl()
