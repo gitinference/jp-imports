@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from jp-imports!")
+from .utils import DataPull

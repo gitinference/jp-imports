@@ -1,6 +1,7 @@
 import datetime
 import importlib.resources as resources
 import logging
+from CensusForge import CensusAPI
 import os
 import tempfile
 from pathlib import Path
@@ -117,85 +118,6 @@ class DataPull:
             df.write_parquet(file_path)
 
         return pl.read_parquet(file_path)
-
-    def insert_int_jp(self) -> pl.DataFrame:
-        if "jptradedata" not in self.conn.sql("SHOW TABLES;").df().get("name").tolist():
-            init_jp_trade_data_table(self.data_file)
-
-        if self.conn.sql("SELECT * FROM 'jptradedata';").df().empty:
-            if not os.path.exists(f"{self.saving_dir}raw/jp_data.parquet"):
-                self.pull_int_jp()
-            if not os.path.exists(f"{self.saving_dir}external/code_agr.json"):
-                logging.debug(
-                    "https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json"
-                )
-                self.pull_file(
-                    url="https://raw.githubusercontent.com/ouslan/jp-imports/main/data/external/code_agr.json",
-                    filename=(f"{self.saving_dir}external/code_agr.json"),
-                )
-            agri_prod = pl.read_json(
-                f"{self.saving_dir}external/code_agr.json"
-            ).transpose()
-            agri_prod = (
-                agri_prod.with_columns(pl.nth(0).cast(pl.String).str.zfill(4))
-                .to_series()
-                .to_list()
-            )
-            jp_df = pl.read_parquet(f"{self.saving_dir}raw/jp_data.parquet")
-            jp_df = jp_df.rename(
-                {col: col.lower() for col in jp_df.collect_schema().names()}
-            )
-            jp_df = jp_df.with_columns(
-                date=pl.col("year").cast(pl.String)
-                + "-"
-                + pl.col("month").cast(pl.String)
-                + "-01",
-                unit_1=pl.col("unit_1").str.to_lowercase(),
-                unit_2=pl.col("unit_2").str.to_lowercase(),
-                hts_code=pl.col("commodity_code")
-                .cast(pl.String)
-                .str.zfill(10)
-                .str.replace("'", ""),
-                trade_id=pl.when(pl.col("trade") == "i").then(1).otherwise(2),
-            )
-
-            jp_df = jp_df.with_columns(pl.col("date").cast(pl.Date))
-
-            jp_df = jp_df.with_columns(
-                agri_prod=pl.when(pl.col("hts_code").is_in(agri_prod))
-                .then(1)
-                .otherwise(0)
-            )
-            jp_df = jp_df.with_columns(
-                sitc=pl.when(pl.col("sitc_short_desc").str.starts_with("Civilian"))
-                .then(9998)
-                .when(pl.col("sitc_short_desc").str.starts_with("-"))
-                .then(9999)
-                .otherwise(pl.col("sitc"))
-            )
-            jp_df = jp_df.filter(pl.col("hts_code").is_not_null())
-            jp_df = jp_df.select(
-                pl.col(
-                    "date",
-                    "country",
-                    "trade_id",
-                    "agri_prod",
-                    "hts_code",
-                    "hts_desc",
-                    "data",
-                    "qty_1",
-                    "unit_1",
-                    "qty_2",
-                    "unit_2",
-                    "sitc",
-                    "naics",
-                )
-            )
-            self.conn.sql("INSERT INTO 'jptradedata' BY NAME SELECT * FROM jp_df;")
-            logging.info("finished inserting data into the database")
-            return self.conn.sql("SELECT * FROM 'jptradedata';").pl()
-        else:
-            return self.conn.sql("SELECT * FROM 'jptradedata';").pl()
 
     def pull_comtrade(self, iso: str, trade_id, date, code) -> pl.DataFrame:
         df = comtradeapicall.previewFinalData(
@@ -336,9 +258,7 @@ class DataPull:
                     )
         return self.conn.sql("SELECT * FROM 'comtradetable';").pl()
 
-    def pull_census_hts(
-        self, end_year: int, start_year: int, exports: bool, state: str
-    ) -> None:
+    def pull_census_hts(self, exports: bool, state: str) -> pl.DataFrame:
         """
         Pulls HTS data from the Census and saves them in a parquet file.
 
@@ -358,69 +278,62 @@ class DataPull:
         None
         """
 
-        empty_df = [
-            pl.Series("date", dtype=pl.Datetime),
-            pl.Series("census_value", dtype=pl.Int64),
-            pl.Series("comm_level", dtype=pl.String),
-            pl.Series("commodity", dtype=pl.String),
-            pl.Series("country_name", dtype=pl.String),
-            pl.Series("contry_code", dtype=pl.String),
-        ]
-        census_df = pl.DataFrame(empty_df)
-        base_url = "https://api.census.gov/data/timeseries/"
-        key = os.getenv("CENSUS_API_KEY")
+        for _year in range(2010, 2023):
+            exports_path = Path(
+                f"{self.saving_dir}raw/census-exports-{state}-{_year}.parquet"
+            )
+            imports_path = Path(
+                f"{self.saving_dir}raw/census-imports-{state}-{_year}.parquet"
+            )
 
+            if exports_path.exists() and imports_path.exists():
+                continue
+
+            req_exports = CensusAPI().query(
+                dataset="timeseries-intltrade-exports-statehs",
+                params_list=[
+                    "CTY_CODE",
+                    "CTY_NAME",
+                    "ALL_VAL_MO",
+                    "COMM_LVL",
+                    "E_COMMODITY",
+                ],
+                year=_year,
+                geography="state",
+                geography_filter=state,
+                skip_checks=True,
+            )
+
+            req_imports = CensusAPI().query(
+                dataset="timeseries-intltrade-imports-statehs",
+                params_list=[
+                    "CTY_CODE",
+                    "CTY_NAME",
+                    "GEN_VAL_MO",
+                    "COMM_LVL",
+                    "I_COMMODITY",
+                ],
+                year=_year,
+                geography="state",
+                geography_filter=state,
+                skip_checks=True,
+            )
+
+            df_exports = pl.DataFrame(req_exports)
+            df_exports.write_parquet(exports_path)
+
+            df_imports = pl.DataFrame(req_imports)
+            df_imports.write_parquet(imports_path)
         if exports:
-            param = "CTY_CODE,CTY_NAME,ALL_VAL_MO,COMM_LVL,E_COMMODITY"
-            flow = "intltrade/exports/statehs"
-            naming = {
-                "CTY_CODE": "contry_code",
-                "CTY_NAME": "country_name",
-                "ALL_VAL_MO": "census_value",
-                "COMM_LVL": "comm_level",
-                "E_COMMODITY": "commodity",
-            }
-            saving_path = f"{self.saving_dir}/raw/census_hts_exports.parquet"
+            return self.conn.execute(
+                f"SELECT * FROM '{self.saving_dir}raw/census-exports-{state}-*.parquet';"
+            ).pl()
         else:
-            param = "CTY_CODE,CTY_NAME,GEN_VAL_MO,COMM_LVL,I_COMMODITY"
-            flow = "intltrade/imports/statehs"
-            naming = {
-                "CTY_CODE": "contry_code",
-                "CTY_NAME": "country_name",
-                "GEN_VAL_MO": "census_value",
-                "COMM_LVL": "comm_level",
-                "I_COMMODITY": "commodity",
-            }
-            saving_path = f"{self.saving_dir}/raw/census_hts_imports.parquet"
+            return self.conn.execute(
+                f"SELECT * FROM '{self.saving_dir}raw/census-imports-{state}-*.parquet';"
+            ).pl()
 
-        for year in range(start_year, end_year + 1):
-            url = f"{base_url}{flow}?get={param}&STATE={state}&key={key}&time={year}"
-            r = requests.get(url).json()
-            df = pl.DataFrame(r)
-            names = df.select(pl.col("column_0")).transpose()
-            df = df.drop("column_0").transpose()
-            df = df.rename(names.to_dicts().pop()).rename(naming)
-            df = df.with_columns(
-                date=(pl.col("time") + "-01").str.to_datetime("%Y-%m-%d")
-            )
-            df = df.select(
-                pl.col(
-                    "date",
-                    "census_value",
-                    "comm_level",
-                    "commodity",
-                    "country_name",
-                    "contry_code",
-                )
-            )
-            df = df.with_columns(pl.col("census_value").cast(pl.Int64))
-            census_df = pl.concat([census_df, df], how="vertical")
-
-        census_df.write_parquet(saving_path)
-
-    def pull_census_naics(
-        self, end_year: int, start_year: int, exports: bool, state: str
-    ) -> None:
+    def pull_census_naics(self, exports: bool, state: str) -> None:
         """
         Pulls NAICS data from the Census and saves them in a parquet file.
 
