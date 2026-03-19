@@ -11,7 +11,7 @@ from CensusForge import CensusAPI
 from jp_tools import download
 
 
-class DataPull:
+class TradeUtils:
     """
     This class pulls data from the CENSUS and the Puerto Rico Institute of Statistics
 

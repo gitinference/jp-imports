@@ -1,12 +1,13 @@
-import os
-from datetime import datetime as dt
+import importlib.resources as resources
 import logging
+from datetime import datetime as dt
+
 import polars as pl
 
-from .data_pull import DataPull
+from .utils import TradeUtils
 
 
-class DataTrade(DataPull):
+class JPTrade(TradeUtils):
     """
     Data processing class for the various data sources in DataPull.
     """
@@ -32,9 +33,9 @@ class DataTrade(DataPull):
         None
         """
         super().__init__(saving_dir, database_file, log_file)
-        self.jp_data = os.path.join(self.saving_dir, "raw/jp_data.parquet")
-        self.org_data = os.path.join(self.saving_dir, "raw/org_data.parquet")
-        self.agr_file = os.path.join(self.saving_dir, "external/code_agr.json")
+        self.agr_file = str(
+            resources.files("jp_imports").joinpath("resources/code_agr.json")
+        )
 
     def process_int_jp(
         self,
@@ -68,7 +69,7 @@ class DataTrade(DataPull):
 
         switch = [time_frame, level]
 
-        df = self.insert_int_jp()
+        df = self.pull_int_jp()
 
         if agriculture_filter:
             df = df.filter(pl.col("agri_prod") == 1)
@@ -104,80 +105,6 @@ class DataTrade(DataPull):
         else:
             raise ValueError('Invalid time format. Use "date" or "start_date+end_date"')
 
-        df = self.conversion(df)
-
-        if group:
-            # return self.process_cat(switch=switch)
-            raise NotImplementedError("Grouping not implemented yet")
-        else:
-            return self.process_data(switch=switch, base=df)
-
-    def process_int_org(
-        self,
-        level: str,
-        time_frame: str,
-        datetime: str = "",
-        agriculture_filter: bool = False,
-        group: bool = False,
-        level_filter: str = "",
-    ) -> pl.DataFrame:
-        """
-        Process the data from Puerto Rico Statistics Institute.
-
-        Parameters
-        ----------
-        time: str
-            Time period to process the data. The options are "yearly", "qrt", and "monthly".
-            ex. "2020-01-01+2021-01-01" - for yearly data
-                "2020-01-01+2020-03-01" - for quarterly data
-                "2020-01-01" - for monthly data
-        types: str
-            The type of data to process. The options are "total", "hts", and "country".
-        agg: str
-            Aggregation of the data. The options are "monthly", "yearly", "fiscal", "total" and "qtr".
-        group: bool
-            Group the data by the classification. (Not implemented yet)
-        update: bool
-            Update the data from the source.
-        filter: str
-            Filter the data based on the type. ex. "NAICS code" or "HTS code".
-
-        Returns
-        -------
-        pl.LazyFrame
-            Processed data. Requires df.collect() to view the data.
-        """
-        switch = [time_frame, level]
-
-        if time_frame == "naics":
-            raise ValueError(
-                "NAICS data is not available for Puerto Rico Statistics Institute."
-            )
-        if datetime == "":
-            df = self.insert_int_org()
-        elif len(datetime.split("+")) == 2:
-            times = datetime.split("+")
-            start = times[0]
-            end = times[1]
-            df = self.insert_int_org()
-            df = df.filter((pl.col("date") >= start) & (pl.col("date") <= end))
-        elif len(datetime.split("+")) == 1:
-            df = self.insert_int_org()
-            df = df.filter(pl.col("date").dt.year() == int(datetime))
-        else:
-            raise ValueError('Invalid time format. Use "date" or "start_date+end_date"')
-
-        if agriculture_filter:
-            df = df.filter(pl.col("agri_prod") == 1)
-
-        if level == "hts":
-            df = df.filter(pl.col("hts_code").str.starts_with(level_filter))
-            if df.is_empty():
-                raise ValueError(f"Invalid HTS code: {level_filter}")
-        elif level == "country":
-            df = df.filter(pl.col("hts_code").str.starts_with(level_filter))
-            if df.is_empty():
-                raise ValueError(f"Invalid Country code: {level_filter}")
         df = self.conversion(df)
 
         if group:
@@ -610,7 +537,7 @@ class DataTrade(DataPull):
                 raise ValueError(f"Invalid switch: {switch}")
 
     def process_price(self, agriculture_filter: bool = False) -> pl.DataFrame:
-        df = self.process_int_org(
+        df = self.process_int_jp(
             time_frame="monthly", level="hts", agriculture_filter=agriculture_filter
         )
         df = df.with_columns(pl.col("imports_qty", "exports_qty").replace(0, 1))
@@ -921,9 +848,7 @@ class DataTrade(DataPull):
         df = df.with_columns(pl.format("{}%", pl.col("percent_num")).alias("percent"))
         return df
 
-    def apply_data_type(
-        self, df: pl.DataFrame, data_type: str, frequency: str, trade_type: str
-    ):
+    def apply_data_type(self, df: pl.DataFrame, data_type: str, frequency: str):
         if frequency == "month":
             date = ["year", "month"]
             year = "year"
