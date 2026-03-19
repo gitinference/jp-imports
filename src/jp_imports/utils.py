@@ -1,14 +1,13 @@
 import datetime
 import importlib.resources as resources
 import logging
-from CensusForge import CensusAPI
-import os
 import tempfile
 from pathlib import Path
 
 import comtradeapicall
 import duckdb
 import polars as pl
+from CensusForge import CensusAPI
 from jp_tools import download
 
 
