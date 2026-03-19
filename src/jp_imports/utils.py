@@ -280,10 +280,10 @@ class DataPull:
 
         for _year in range(2010, 2023):
             exports_path = Path(
-                f"{self.saving_dir}raw/census-exports-{state}-{_year}.parquet"
+                f"{self.saving_dir}raw/census-hts-exports-{state}-{_year}.parquet"
             )
             imports_path = Path(
-                f"{self.saving_dir}raw/census-imports-{state}-{_year}.parquet"
+                f"{self.saving_dir}raw/census-hts-imports-{state}-{_year}.parquet"
             )
 
             if exports_path.exists() and imports_path.exists():
@@ -326,11 +326,11 @@ class DataPull:
             df_imports.write_parquet(imports_path)
         if exports:
             return self.conn.execute(
-                f"SELECT * FROM '{self.saving_dir}raw/census-exports-{state}-*.parquet';"
+                f"SELECT * FROM '{self.saving_dir}raw/census-hts-exports-{state}-*.parquet';"
             ).pl()
         else:
             return self.conn.execute(
-                f"SELECT * FROM '{self.saving_dir}raw/census-imports-{state}-*.parquet';"
+                f"SELECT * FROM '{self.saving_dir}raw/census-hts-imports-{state}-*.parquet';"
             ).pl()
 
     def pull_census_naics(self, exports: bool, state: str) -> None:
