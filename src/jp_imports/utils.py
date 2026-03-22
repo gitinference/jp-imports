@@ -288,7 +288,7 @@ class TradeUtils:
             if exports_path.exists() and imports_path.exists():
                 continue
 
-            req_exports = CensusAPI().query(
+            req_exports = CensusAPI().timeseries_query(
                 dataset="timeseries-intltrade-exports-statehs",
                 params_list=[
                     "CTY_CODE",
@@ -298,12 +298,11 @@ class TradeUtils:
                     "E_COMMODITY",
                 ],
                 year=_year,
-                geography="state",
-                geography_filter=state,
+                extra=f"STATE={state}",
                 skip_checks=True,
             )
 
-            req_imports = CensusAPI().query(
+            req_imports = CensusAPI().timeseries_query(
                 dataset="timeseries-intltrade-imports-statehs",
                 params_list=[
                     "CTY_CODE",
@@ -313,8 +312,7 @@ class TradeUtils:
                     "I_COMMODITY",
                 ],
                 year=_year,
-                geography="state",
-                geography_filter=state,
+                extra=f"STATE={state}",
                 skip_checks=True,
             )
 
@@ -363,7 +361,7 @@ class TradeUtils:
             if exports_path.exists() and imports_path.exists():
                 continue
 
-            req_exports = CensusAPI().query(
+            req_exports = CensusAPI().timeseries_query(
                 dataset="timeseries-intltrade-exports-statenaics",
                 params_list=[
                     "CTY_CODE",
@@ -373,12 +371,11 @@ class TradeUtils:
                     "NAICS",
                 ],
                 year=_year,
-                geography="state",
-                geography_filter=state,
+                extra=f"STATE={state}",
                 skip_checks=True,
             )
 
-            req_imports = CensusAPI().query(
+            req_imports = CensusAPI().timeseries_query(
                 dataset="timeseries-intltrade-imports-statenaics",
                 params_list=[
                     "CTY_CODE",
@@ -388,8 +385,7 @@ class TradeUtils:
                     "NAICS",
                 ],
                 year=_year,
-                geography="state",
-                geography_filter=state,
+                extra=f"STATE={state}",
                 skip_checks=True,
             )
 

@@ -1,11 +1,12 @@
-from src.data.data_process import DataTrade
-from src.data.data_viz import gen_pie_chart
+from jp_imports import TradeUtils
+
 
 def main() -> None:
-    d = DataTrade()
-    print(d.process_int_jp(level="naics", time_frame="yearly").execute())
-    # gen_pie_chart(time_frame="monthly", year=2011, month=7)
-
+    tu = TradeUtils()
+    fips = ["PR", "VI", "HI"]
+    for fip in fips:
+        tu.pull_census_hts(exports=True, state=fip)
+        tu.pull_census_naics(exports=True, state=fip)
 
 
 if __name__ == "__main__":
