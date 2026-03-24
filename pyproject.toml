@@ -12,6 +12,7 @@ dependencies = [
     "jp-tools>=0.5.8",
     "pandas>=3.0.1",
     "polars>=1.39.0",
+    "pyarrow>=23.0.1",
 ]
 
 [project.scripts]

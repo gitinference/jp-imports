@@ -390,9 +390,13 @@ class TradeUtils:
             )
 
             df_exports = pl.DataFrame(req_exports)
+            df_exports = df_exports.rename(df_exports.row(0, named=True))
+            df_exports = df_exports.slice(1)    
             df_exports.write_parquet(exports_path)
 
             df_imports = pl.DataFrame(req_imports)
+            df_imports = df_imports.rename(df_imports.row(0, named=True))
+            df_imports = df_imports.slice(1)    
             df_imports.write_parquet(imports_path)
         if exports:
             return self.conn.execute(
