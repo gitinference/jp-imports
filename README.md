@@ -1,5 +1,8 @@
 # DataTrade Processing
 
+> [!IMPORTANT]  
+> Proyect developent has moved to [Codeberg](https://codeberg.org/gitinference/jp-imports)
+
 ## Overview
 
 This project provides tools for processing trade data for Puerto Rico, integrating various data sources and performing necessary transformations using Polars and Ibis. The project also includes unit tests to ensure the integrity and correctness of data processing functionalities.
@@ -62,6 +65,7 @@ data_trade.insert_int_org("path/to/org_data_sample.parquet")
 # Process data
 result_df = data_trade.process_int_jp("yearly", "total", True).to_polars()
 ```
+
 However, you can call the `DataTrade` class directly and will do all the insert and data download steps for you. Example:
 
 ```python
@@ -69,7 +73,7 @@ from src.jp_imports.data_process import DataTrade
 
 data_trade = DataTrade()
 data_trade.process_int_jp("yearly", "total", True)
-# or 
+# or
 data_trade.process_int_org("yearly", "total", True)
 ```
 
@@ -101,7 +105,7 @@ datatrade-processing/
 └── requirements.txt
 ```
 
-
 ## License
 
 This project is licensed under the GPL V3 License. See the [LICENSE](LICENSE) file for details.
+
