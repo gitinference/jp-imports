@@ -1,7 +1,11 @@
 import datetime
+import hashlib
 import importlib.resources as resources
 import logging
+import shutil
+import subprocess
 import tempfile
+import zipfile
 from pathlib import Path
 
 import comtradeapicall
@@ -117,6 +121,73 @@ class TradeUtils:
             df.write_parquet(file_path)
 
         return pl.read_parquet(file_path)
+
+    def pull_int_org(self, update: bool = False) -> pl.DataFrame:
+
+        # Define Output file and hash
+        parquet_path = Path("data") / "processed" / "jp_org.parquet"
+        name_hash = hashlib.md5(str(parquet_path).encode()).hexdigest()
+
+        # Define Temporary directories
+        temp_zip = Path(tempfile.gettempdir()) / f"jp_org_zip_{name_hash}.zip"
+        stage1_dir = Path(tempfile.gettempdir()) / f"stage1_{name_hash}"
+        stage2_dir = Path(tempfile.gettempdir()) / f"stage2_{name_hash}"
+
+        if not parquet_path.exists() or update:
+
+            download(
+                url="http://apps.estadisticas.pr/iepr/LinkClick.aspx?fileticket=JVyYmIHqbqc%3d&tabid=284&mid=244930",
+                filename=(str(temp_zip)),
+            )
+
+            # Stage 1: Extract all Parent zip file
+            # WARNING: Added the use of subprocess due to mal formated zip from estadisticas.pr.gov
+
+            stage1_dir.mkdir(parents=True, exist_ok=True)
+
+            try:
+                with zipfile.ZipFile(temp_zip, "r") as zip_ref:
+                    zip_ref.extractall(stage1_dir)
+
+            except zipfile.BadZipFile:
+                print("Warning: Used 7z subprocess due to mall formated file")
+                subprocess.run(
+                    ["7z", "x", str(temp_zip), f"-o{stage1_dir}", "-y"],
+                    capture_output=True,
+                )
+
+            stage2_dir.mkdir(parents=True, exist_ok=True)
+            inner_zips = list(stage1_dir.rglob("*.zip"))
+
+            for izip in inner_zips:
+                try:
+                    with zipfile.ZipFile(izip, "r") as zip_ref:
+                        # Extracting to our second temp directory
+                        zip_ref.extractall(stage2_dir)
+                except zipfile.BadZipFile:
+                    print(
+                        f"Warning: {izip.name} was also malformed. Switching back to 7-zip for this file."
+                    )
+                    subprocess.run(
+                        ["7z", "x", str(izip), f"-o{stage2_dir}", "-y"],
+                        capture_output=True,
+                    )
+
+            # Stage 3: unify data into a single file
+            csv_files = list(stage2_dir.rglob("*.csv"))
+
+            if csv_files:
+                df_list = [pl.read_csv(f, ignore_errors=True) for f in csv_files]
+                df = pl.concat(df_list)
+                df.write_parquet(parquet_path)
+                print(f"processed {len(csv_files)} CSVs into {parquet_path}")
+
+            # Stage 4: Cleanup
+            shutil.rmtree(stage1_dir)
+            shutil.rmtree(stage2_dir)
+            temp_zip.unlink(missing_ok=True)
+
+        return pl.read_parquet(parquet_path)
 
     def pull_comtrade(self, iso: str, trade_id, date, code) -> pl.DataFrame:
         df = comtradeapicall.previewFinalData(
@@ -391,12 +462,12 @@ class TradeUtils:
 
             df_exports = pl.DataFrame(req_exports)
             df_exports = df_exports.rename(df_exports.row(0, named=True))
-            df_exports = df_exports.slice(1)    
+            df_exports = df_exports.slice(1)
             df_exports.write_parquet(exports_path)
 
             df_imports = pl.DataFrame(req_imports)
             df_imports = df_imports.rename(df_imports.row(0, named=True))
-            df_imports = df_imports.slice(1)    
+            df_imports = df_imports.slice(1)
             df_imports.write_parquet(imports_path)
         if exports:
             return self.conn.execute(
