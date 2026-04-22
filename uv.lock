@@ -633,7 +633,7 @@ wheels = [
 
 [[package]]
 name = "jp-imports"
-version = "0.1.0"
+version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "censusforge" },
