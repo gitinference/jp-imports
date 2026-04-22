@@ -123,6 +123,27 @@ class TradeUtils:
         return pl.read_parquet(file_path)
 
     def pull_int_org(self, update: bool = False) -> pl.DataFrame:
+        """
+        Downloads, extracts, and unifies organizational data from the Puerto Rico
+        Institute of Statistics.
+
+        The process involves a nested extraction: a parent ZIP contains multiple
+        inner ZIPs, which in turn contain the target CSV files. Due to known
+        formatting issues with the source ZIP files, the method employs a fallback
+        to the '7z' system utility if the standard zipfile library fails.
+
+        Args:
+            update (bool): If True, ignores existing local parquet files and
+                re-downloads/processes the data. Defaults to False.
+
+        Returns:
+            pl.DataFrame: A Polars DataFrame containing the unified data from all
+                extracted CSVs.
+
+        Note:
+            Requires '7z' to be installed in the system PATH as a fallback for
+            malformed archive handling.
+        """
 
         # Define Output file and hash
         parquet_path = Path("data") / "processed" / "jp_org.parquet"
