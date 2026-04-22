@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import importlib.resources as resources
 import logging
@@ -8,7 +7,6 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-import comtradeapicall
 import duckdb
 import polars as pl
 from CensusForge import CensusAPI
@@ -196,12 +194,15 @@ class TradeUtils:
 
             # Stage 3: unify data into a single file
             csv_files = list(stage2_dir.rglob("*.csv"))
+            if not csv_files:
+                raise FileNotFoundError(
+                    "Extraction successful, but no CSV files were found to process."
+                )
 
-            if csv_files:
-                df_list = [pl.read_csv(f, ignore_errors=True) for f in csv_files]
-                df = pl.concat(df_list)
-                df.write_parquet(parquet_path)
-                print(f"processed {len(csv_files)} CSVs into {parquet_path}")
+            df_list = [pl.read_csv(f, ignore_errors=True) for f in csv_files]
+            df = pl.concat(df_list)
+            df.write_parquet(parquet_path)
+            print(f"processed {len(csv_files)} CSVs into {parquet_path}")
 
             # Stage 4: Cleanup
             shutil.rmtree(stage1_dir)
