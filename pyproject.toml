@@ -1,23 +1,26 @@
 [project]
 name = "jp-imports"
-version = "1.1.5"
-authors = [{ name = "Alejandro Ousland", email = "alejandro.ouslan@upr.edu" }]
+version = "1.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = "==3.12.*"
+authors = [{ name = "Alejandro Ouslan", email = "alejandro.ouslan@upr.edu" }]
+requires-python = ">=3.12"
 dependencies = [
-  "altair[all]>=5.5.0",
-  "comtradeapicall>=1.2.1",
-  "duckdb>=1.2.2",
-  "pandas>=2.2.3",
-  "polars>=1.16.0",
-  "pyarrow>=19.0.0",
-  "pytest>=8.3.4",
-  "requests>=2.32.3",
-  "sqlmodel>=0.0.22",
-  "tqdm>=4.67.1",
-  "urllib3>=2.5.0",
+  "censusforge>=0.6.1",
+  "comtradeapicall>=1.3.0",
+  "duckdb>=1.5.0",
+  "jp-tools>=0.5.8",
+  "pandas>=3.0.1",
+  "polars>=1.39.0",
+  "pyarrow>=23.0.1",
 ]
 
+[project.scripts]
+jp-imports = "jp_imports:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [dependency-groups]
-dev = ["ipykernel>=6.29.5", "jupyter>=1.1.1", "pyvim>=3.0.3"]
+dev = ["jupyter>=1.1.1", "pre-commit>=4.5.1", "pytest>=9.0.3"]
