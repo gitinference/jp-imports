@@ -49,16 +49,18 @@ class TradeUtils:
         -------
         None
         """
-        file_path = Path(f"{self.saving_dir}raw/jp_data.parquet")
+        file_path = Path(self.saving_dir) / "raw" / "jp_data.parquet"
+        name_hash = hashlib.md5(str(file_path).encode()).hexdigest()
+        temp_csv = Path(tempfile.gettempdir()) / f"{name_hash}.csv"
+
         if not file_path.exists() or update:
 
             download(
                 url="https://datos.estadisticas.pr/dataset/027ddbe1-c51c-46bf-aec3-a62d5d7e8539/resource/b8367825-a3de-41cf-8794-e42c10987b6f/download/ftrade_all_iepr.csv",
-                filename=f"{tempfile.gettempdir()}/{hash(file_path)}.csv",
+                filename=str(temp_csv),
+                verify=False,
             )
-            df = pl.read_csv(
-                f"{tempfile.gettempdir()}/{hash(file_path)}.csv", ignore_errors=True
-            )
+            df = pl.read_csv(temp_csv, ignore_errors=True)
 
             agri_prod = pl.read_json(
                 str(resources.files("jp_imports").joinpath("resources/code_agr.json"))
