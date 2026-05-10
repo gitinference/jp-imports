@@ -8,7 +8,6 @@ import zipfile
 from pathlib import Path
 
 import duckdb
-from pandas import read_parquet
 import polars as pl
 from CensusForge import CensusAPI
 from jp_tools import download
