@@ -22,11 +22,9 @@ class TradeUtils:
     def __init__(
         self,
         saving_dir: str = "data/",
-        database_file: str = "data.ddb",
         log_file: str = "data_process.log",
     ):
         self.saving_dir = saving_dir
-        self.data_file = database_file
         self.conn = duckdb.connect()
 
         logging.basicConfig(
@@ -49,16 +47,18 @@ class TradeUtils:
         -------
         None
         """
-        file_path = Path(f"{self.saving_dir}raw/jp_data.parquet")
+        file_path = Path(self.saving_dir) / "raw" / "jp_data.parquet"
+        name_hash = hashlib.md5(str(file_path).encode()).hexdigest()
+        temp_csv = Path(tempfile.gettempdir()) / f"{name_hash}.csv"
+
         if not file_path.exists() or update:
 
             download(
                 url="https://datos.estadisticas.pr/dataset/027ddbe1-c51c-46bf-aec3-a62d5d7e8539/resource/b8367825-a3de-41cf-8794-e42c10987b6f/download/ftrade_all_iepr.csv",
-                filename=f"{tempfile.gettempdir()}/{hash(file_path)}.csv",
+                filename=str(temp_csv),
+                verify=False,
             )
-            df = pl.read_csv(
-                f"{tempfile.gettempdir()}/{hash(file_path)}.csv", ignore_errors=True
-            )
+            df = pl.read_csv(temp_csv, ignore_errors=True)
 
             agri_prod = pl.read_json(
                 str(resources.files("jp_imports").joinpath("resources/code_agr.json"))
@@ -120,7 +120,7 @@ class TradeUtils:
 
         return pl.read_parquet(file_path)
 
-    def pull_int_org(self, update: bool = False) -> pl.DataFrame:
+    def pull_int_org(self, update: bool = False, export: bool = True) -> pl.DataFrame:
         """
         Downloads, extracts, and unifies organizational data from the Puerto Rico
         Institute of Statistics.
@@ -144,15 +144,16 @@ class TradeUtils:
         """
 
         # Define Output file and hash
-        parquet_path = Path("data") / "processed" / "jp_org.parquet"
-        name_hash = hashlib.md5(str(parquet_path).encode()).hexdigest()
+        parquet_export_path = Path(self.saving_dir) / "raw" / "jp_org_exports.parquet"
+        parquet_import_path = Path(self.saving_dir) / "raw" / "jp_org_imports.parquet"
+        name_hash = hashlib.md5(str(parquet_export_path).encode()).hexdigest()
 
         # Define Temporary directories
         temp_zip = Path(tempfile.gettempdir()) / f"jp_org_zip_{name_hash}.zip"
         stage1_dir = Path(tempfile.gettempdir()) / f"stage1_{name_hash}"
         stage2_dir = Path(tempfile.gettempdir()) / f"stage2_{name_hash}"
 
-        if not parquet_path.exists() or update:
+        if not parquet_export_path.exists() or update:
 
             download(
                 url="http://apps.estadisticas.pr/iepr/LinkClick.aspx?fileticket=JVyYmIHqbqc%3d&tabid=284&mid=244930",
@@ -201,15 +202,47 @@ class TradeUtils:
 
             df_list = [pl.read_csv(f, ignore_errors=True) for f in csv_files]
             df = pl.concat(df_list)
-            df.write_parquet(parquet_path)
-            print(f"processed {len(csv_files)} CSVs into {parquet_path}")
+            df = df.with_columns(
+                country=pl.col("country").str.to_lowercase(),
+                hts=pl.col("HTS").str.replace("'", ""),
+                date=(
+                    pl.col("year").cast(pl.String)
+                    + "-"
+                    + pl.col("month").cast(pl.String).str.zfill(2)
+                    + "-01"
+                ).str.to_datetime("%Y-%m-%d"),
+            )
+            df = df.select(
+                pl.col(
+                    "date",
+                    "country",
+                    "hts",
+                    "unit_1",
+                    "qty_1",
+                    "unit_2",
+                    "qty_2",
+                    "value",
+                    "import_export",
+                )
+            )
+
+            # Save Export Data
+            df_exports = df.filter(pl.col("import_export") == "e").drop("import_export")
+            df_exports.write_parquet(parquet_export_path)
+
+            # Save import data
+            df_imports = df.filter(pl.col("import_export") == "i").drop("import_export")
+            df_imports.write_parquet(parquet_import_path)
 
             # Stage 4: Cleanup
             shutil.rmtree(stage1_dir)
             shutil.rmtree(stage2_dir)
             temp_zip.unlink(missing_ok=True)
 
-        return pl.read_parquet(parquet_path)
+        if export:
+            return pl.read_parquet(parquet_export_path)
+        else:
+            return pl.read_parquet(parquet_import_path)
 
     def pull_census_hts(self, exports: bool, state: str) -> pl.DataFrame:
         """

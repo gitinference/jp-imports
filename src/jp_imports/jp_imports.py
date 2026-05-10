@@ -16,7 +16,6 @@ class JPTrade(TradeUtils):
         self,
         saving_dir: str = "data/",
         database_file: str = "data.ddb",
-        log_file: str = "data_process.log",
     ):
         """
         Initialize the DataProcess class.
@@ -32,7 +31,7 @@ class JPTrade(TradeUtils):
         -------
         None
         """
-        super().__init__(saving_dir, database_file, log_file)
+        super().__init__(saving_dir, database_file)
         self.agr_file = str(
             resources.files("jp_imports").joinpath("resources/code_agr.json")
         )

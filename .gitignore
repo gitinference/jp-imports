@@ -170,7 +170,7 @@ data/*
 
 # ignore qmd stuff
 /notebooks/*
-!/notebooks/*.qmd
+!/notebooks/*.ipynb
 
 *.sqlite
 *.ddb
