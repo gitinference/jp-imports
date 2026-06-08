@@ -562,19 +562,19 @@ class JPTrade(TradeUtils):
         # Now you can safely use group_by_dynamic
         result = df.with_columns(
             pl.col("price_imports")
-            .rolling_mean(window_size=3, min_periods=1)
+            .rolling_mean(window_size=3, min_samples=1)
             .over("hs4")
             .alias("moving_price_imports"),
             pl.col("price_exports")
-            .rolling_mean(window_size=3, min_periods=1)
+            .rolling_mean(window_size=3, min_samples=1)
             .over("hs4")
             .alias("moving_price_exports"),
             pl.col("price_imports")
-            .rolling_std(window_size=3, min_periods=1)
+            .rolling_std(window_size=3, min_samples=1)
             .over("hs4")
             .alias("moving_price_imports_std"),
             pl.col("price_exports")
-            .rolling_std(window_size=3, min_periods=1)
+            .rolling_std(window_size=3, min_samples=1)
             .over("hs4")
             .alias("moving_price_exports_std"),
         )
@@ -808,7 +808,7 @@ class JPTrade(TradeUtils):
                 (pl.col("date").dt.month() >= 1) & (pl.col("date").dt.month() <= 3)
             )
             .then(1)
-            .when((pl.col("date").dt.month() >= 4) & (pl.col("date").dt.month() <= 8))
+            .when((pl.col("date").dt.month() >= 4) & (pl.col("date").dt.month() <= 6))
             .then(2)
             .when((pl.col("date").dt.month() >= 7) & (pl.col("date").dt.month() <= 9))
             .then(3)
