@@ -19,17 +19,27 @@ jp-tools==0.5.8
     #   jp-imports (pyproject.toml)
     #   censusforge
 numpy==2.4.3
-    # via censusforge
+    # via
+    #   censusforge
+    #   pandas
+pandas==3.0.3
+    # via jp-imports (pyproject.toml)
 polars==1.39.0
     # via jp-imports (pyproject.toml)
 polars-runtime-32==1.39.0
     # via polars
+pyarrow==24.0.0
+    # via jp-imports (pyproject.toml)
+python-dateutil==2.9.0.post0
+    # via pandas
 requests==2.32.5
     # via
     #   censusforge
     #   jp-tools
 setuptools==82.0.1
     # via censusforge
+six==1.17.0
+    # via python-dateutil
 tqdm==4.67.3
     # via jp-tools
 urllib3==2.6.3
