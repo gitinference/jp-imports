@@ -51,7 +51,7 @@ class JPTrade(TradeUtils):
         Parameters
         ----------
         time_frame: str
-            Time period to process the data. The options are "yearly", "qrt", and "monthly".
+            Time period to process the data. The options are "yearly", "qtr", and "monthly".
         level: str
             Type of data to process. The options are "total", "naics", "hs", and "country".
         group: bool
@@ -316,91 +316,91 @@ class JPTrade(TradeUtils):
                 )
                 return df
 
-            case ["qrt", "total"]:
-                df = self.filter_data(base, ["year", "qrt"])
+            case ["qtr", "total"]:
+                df = self.filter_data(base, ["year", "qtr"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
                     .otherwise(pl.col("year")),
-                    qrt=pl.when(pl.col("qrt").is_null())
-                    .then(pl.col("qrt_right"))
-                    .otherwise(pl.col("qrt")),
+                    qtr=pl.when(pl.col("qtr").is_null())
+                    .then(pl.col("qtr_right"))
+                    .otherwise(pl.col("qtr")),
                 )
-                df = df.select(pl.col("*").exclude("year_right", "qrt_right"))
+                df = df.select(pl.col("*").exclude("year_right", "qtr_right"))
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "qrt")
+                ).sort("year", "qtr")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
                 )
                 return df
 
-            case ["qrt", "naics"]:
-                df = self.filter_data(base, ["year", "qrt", "naics"])
+            case ["qtr", "naics"]:
+                df = self.filter_data(base, ["year", "qtr", "naics"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
                     .otherwise(pl.col("year")),
-                    qrt=pl.when(pl.col("qrt").is_null())
-                    .then(pl.col("qrt_right"))
-                    .otherwise(pl.col("qrt")),
+                    qtr=pl.when(pl.col("qtr").is_null())
+                    .then(pl.col("qtr_right"))
+                    .otherwise(pl.col("qtr")),
                     naics=pl.when(pl.col("naics").is_null())
                     .then(pl.col("naics_right"))
                     .otherwise(pl.col("naics")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("year_right", "qrt_right", "naics_right")
+                    pl.col("*").exclude("year_right", "qtr_right", "naics_right")
                 )
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "qrt", "naics")
+                ).sort("year", "qtr", "naics")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
                 )
                 return df
 
-            case ["qrt", "hts"]:
-                df = self.filter_data(base, ["year", "qrt", "hts_code"])
+            case ["qtr", "hts"]:
+                df = self.filter_data(base, ["year", "qtr", "hts_code"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
                     .otherwise(pl.col("year")),
-                    qrt=pl.when(pl.col("qrt").is_null())
-                    .then(pl.col("qrt_right"))
-                    .otherwise(pl.col("qrt")),
+                    qtr=pl.when(pl.col("qtr").is_null())
+                    .then(pl.col("qtr_right"))
+                    .otherwise(pl.col("qtr")),
                     hts_code=pl.when(pl.col("hts_code").is_null())
                     .then(pl.col("hts_code_right"))
                     .otherwise(pl.col("hts_code")),
                 )
                 df = df.select(
-                    pl.col("*").exclude("year_right", "qrt_right", "hts_code_right")
+                    pl.col("*").exclude("year_right", "qtr_right", "hts_code_right")
                 )
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "qrt", "hts_code")
+                ).sort("year", "qtr", "hts_code")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
                 )
                 return df
 
-            case ["qrt", "country"]:
-                df = self.filter_data(base, ["year", "qrt", "country", "hts_code"])
+            case ["qtr", "country"]:
+                df = self.filter_data(base, ["year", "qtr", "country", "hts_code"])
                 df = df.with_columns(
                     year=pl.when(pl.col("year").is_null())
                     .then(pl.col("year_right"))
                     .otherwise(pl.col("year")),
-                    qrt=pl.when(pl.col("qrt").is_null())
-                    .then(pl.col("qrt_right"))
-                    .otherwise(pl.col("qrt")),
+                    qtr=pl.when(pl.col("qtr").is_null())
+                    .then(pl.col("qtr_right"))
+                    .otherwise(pl.col("qtr")),
                     country=pl.when(pl.col("country").is_null())
                     .then(pl.col("country_right"))
                     .otherwise(pl.col("country")),
@@ -410,14 +410,14 @@ class JPTrade(TradeUtils):
                 )
                 df = df.select(
                     pl.col("*").exclude(
-                        "year_right", "qrt_right", "country_right", "hts_code_right"
+                        "year_right", "qtr_right", "country_right", "hts_code_right"
                     )
                 )
                 df = df.with_columns(
                     pl.col(
                         "imports", "exports", "imports_qty", "exports_qty"
                     ).fill_null(strategy="zero")
-                ).sort("year", "qrt", "country")
+                ).sort("year", "qtr", "country")
                 df = df.with_columns(net_exports=pl.col("exports") - pl.col("imports"))
                 df = df.with_columns(
                     net_qty=pl.col("exports_qty") - pl.col("imports_qty")
@@ -562,19 +562,19 @@ class JPTrade(TradeUtils):
         # Now you can safely use group_by_dynamic
         result = df.with_columns(
             pl.col("price_imports")
-            .rolling_mean(window_size=3, min_periods=1)
+            .rolling_mean(window_size=3, min_samples=1)
             .over("hs4")
             .alias("moving_price_imports"),
             pl.col("price_exports")
-            .rolling_mean(window_size=3, min_periods=1)
+            .rolling_mean(window_size=3, min_samples=1)
             .over("hs4")
             .alias("moving_price_exports"),
             pl.col("price_imports")
-            .rolling_std(window_size=3, min_periods=1)
+            .rolling_std(window_size=3, min_samples=1)
             .over("hs4")
             .alias("moving_price_imports_std"),
             pl.col("price_exports")
-            .rolling_std(window_size=3, min_periods=1)
+            .rolling_std(window_size=3, min_samples=1)
             .over("hs4")
             .alias("moving_price_exports_std"),
         )
@@ -804,11 +804,11 @@ class JPTrade(TradeUtils):
             .when(pl.col("unit_2").str.to_lowercase() == "gm")
             .then(pl.col("qty_2") * 1000)
             .otherwise(pl.col("qty_2")),
-            qrt=pl.when(
+            qtr=pl.when(
                 (pl.col("date").dt.month() >= 1) & (pl.col("date").dt.month() <= 3)
             )
             .then(1)
-            .when((pl.col("date").dt.month() >= 4) & (pl.col("date").dt.month() <= 8))
+            .when((pl.col("date").dt.month() >= 4) & (pl.col("date").dt.month() <= 6))
             .then(2)
             .when((pl.col("date").dt.month() >= 7) & (pl.col("date").dt.month() <= 9))
             .then(3)
@@ -852,10 +852,10 @@ class JPTrade(TradeUtils):
             date = ["year", "month"]
             year = "year"
             add = "month"
-        elif frequency == "qrt":
-            date = ["year", "qrt"]
+        elif frequency == "qtr":
+            date = ["year", "qtr"]
             year = "year"
-            add = "qrt"
+            add = "qtr"
         elif frequency == "fiscal_year":
             date = ["fiscal_year"]
             year = "fiscal_year"
@@ -872,7 +872,7 @@ class JPTrade(TradeUtils):
         value_columns = [
             col
             for col in df.columns
-            if col not in {"year", "month", "fiscal_year", "date", "qrt", "time_period"}
+            if col not in {"year", "month", "fiscal_year", "date", "qtr", "time_period"}
         ]
 
         lag_df = (
@@ -913,7 +913,7 @@ class JPTrade(TradeUtils):
         df = df.select([col for col in df.columns if "_lag" not in col])
 
         df = df.filter(pl.col(year) != 2009)
-        if frequency == "qrt":
+        if frequency == "qtr":
             df = df.filter(pl.col("time_period") >= "2010-q4")
         elif frequency == "month":
             df = df.filter(pl.col("time_period") >= "2010-10")
@@ -941,13 +941,13 @@ class JPTrade(TradeUtils):
 
         data = data.sort(new_frequency)
 
-        if new_frequency == "qrt":
-            group_expr = ["year", "qrt", "time_period"]
+        if new_frequency == "qtr":
+            group_expr = ["year", "qtr", "time_period"]
             data = data.with_columns(
                 (
                     pl.col("year").cast(pl.String)
                     + "-q"
-                    + pl.col("qrt").cast(pl.String)
+                    + pl.col("qtr").cast(pl.String)
                 ).alias("time_period")
             )
         elif new_frequency == "month":
