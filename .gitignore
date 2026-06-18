@@ -26,6 +26,19 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# Database files 
+*.sqlite3
+*.db
+*.sqlite
+*.ddb
+*.wal
+*.csv
+*.txt
+*.parquet
+
+# Exeption for requirements
+!requirements.txt
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
@@ -106,8 +119,10 @@ ipython_config.py
 #pdm.lock
 #   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
 #   in version control.
-#   https://pdm.fming.dev/#use-with-ide
+#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
 .pdm.toml
+.pdm-python
+.pdm-build/
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
@@ -159,19 +174,24 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# ignore files in Data folder
-data/*
-
 # ignore mac files
 *.DS_Store
 
+# ignore quarter files 
 # vscode
 .vscode
+data_process.log
+docs/aux/*
+docs/out/*
+qcew
 
-# ignore qmd stuff
-/notebooks/*
-!/notebooks/*.ipynb
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
 
-*.sqlite
-*.ddb
-*.wal
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
