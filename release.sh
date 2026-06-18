@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Release the project and bump version number in the process.
-# script from https://slhck.info/software/2025/10/01/dynamic-versioning-uv-projects.html
+# script adapted from https://slhck.info/software/2025/10/01/dynamic-versioning-uv-projects.html
 
 set -e
 
@@ -59,6 +59,12 @@ if ! command -v uv &>/dev/null; then
   exit 1
 fi
 
+# Check if git-cliff is installed
+if ! command -v git-cliff &>/dev/null; then
+  echo "Error: git-cliff is not installed. Please install it first (e.g., 'uv tool install git-cliff' or 'brew install git-cliff')."
+  exit 1
+fi
+
 echo "Would bump version:"
 uv version --bump "$1" --dry-run
 
@@ -72,17 +78,20 @@ fi
 echo
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-  # replace version number
+  # 1. Replace version number in pyproject.toml
   uv version --bump "$1"
-
   new_version=$(uv version --short)
 
-  # commit changes
-  git add pyproject.toml uv.lock
+  # 2. Generate/update CHANGELOG.md using git-cliff
+  echo "Generating changelog for v$new_version..."
+  git-cliff --tag "v$new_version" --output CHANGELOG.md
+
+  # 3. Stage and commit changes (including CHANGELOG.md)
+  git add pyproject.toml uv.lock CHANGELOG.md
   git commit -m "bump version to $new_version"
   git tag -a "v$new_version" -m "v$new_version"
 
-  # push changes
+  # 4. Push changes
   git push origin main
   git push origin "v$new_version"
 else
