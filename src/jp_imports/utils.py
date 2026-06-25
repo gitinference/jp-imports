@@ -24,7 +24,7 @@ class TradeUtils:
         saving_dir: str = "data/",
         log_file: str = "data_process.log",
     ):
-        self.saving_dir = saving_dir
+        self.saving_dir = Path(saving_dir)
         self.conn = duckdb.connect()
 
         logging.basicConfig(
@@ -47,7 +47,7 @@ class TradeUtils:
         -------
         None
         """
-        file_path = Path(self.saving_dir) / "raw" / "jp_data.parquet"
+        file_path = self.saving_dir / "raw" / "jp_data.parquet"
         name_hash = hashlib.md5(str(file_path).encode()).hexdigest()
         temp_csv = Path(tempfile.gettempdir()) / f"{name_hash}.csv"
 
@@ -144,8 +144,8 @@ class TradeUtils:
         """
 
         # Define Output file and hash
-        parquet_export_path = Path(self.saving_dir) / "raw" / "jp_org_exports.parquet"
-        parquet_import_path = Path(self.saving_dir) / "raw" / "jp_org_imports.parquet"
+        parquet_export_path = self.saving_dir / "raw" / "jp_org_exports.parquet"
+        parquet_import_path = self.saving_dir / "raw" / "jp_org_imports.parquet"
         name_hash = hashlib.md5(str(parquet_export_path).encode()).hexdigest()
 
         # Define Temporary directories
