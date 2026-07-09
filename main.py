@@ -1,12 +1,8 @@
-from jp_imports import TradeUtils
+from jp_imports import JPTrade
 
 
 def main() -> None:
-    tu = TradeUtils()
-    fips = ["PR", "VI", "HI"]
-    for fip in fips:
-        tu.pull_census_hts(exports=True, state=fip)
-        tu.pull_census_naics(exports=True, state=fip)
+    print(JPTrade().process_int_jp(time_frame="monthly", level="hts"))
 
 
 if __name__ == "__main__":
