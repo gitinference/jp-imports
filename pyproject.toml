@@ -1,6 +1,6 @@
 [project]
 name = "jp-imports"
-version = "1.5.1"
+version = "1.5.2"
 description = "Add your description here"
 readme = "README.md"
 authors = [{ name = "Alejandro Ouslan", email = "alejandro.ouslan@upr.edu" }]
