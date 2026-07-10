@@ -22,7 +22,7 @@ class TradeUtils:
     def __init__(
         self,
         saving_dir: str = "data/",
-        log_file: str = "data_process.log",
+        log_file: str = "data.log",
     ):
         self.saving_dir = Path(saving_dir)
         self.conn = duckdb.connect()
