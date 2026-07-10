@@ -4,18 +4,23 @@ on:
   push:
     branches:
       - main
+      - hotfix-5
 
 jobs:
   Build-And-Publish:
     runs-on: local
     steps:
+      - name: Install xz and Node.js
+        run: |
+          apt-get update
+          apt-get install -y nodejs curl xz-utils
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: https://github.com/actions/checkout.git@v4
 
       - name: Install uv
         # This installs the standalone uv binary
         run: curl -LsSf https://astral.sh/uv/0.11.7/install.sh | sh
-        
+
       - name: Build and Publish to PyPI
         # We ensure uv is in the path for this step
         env:
@@ -23,7 +28,7 @@ jobs:
         run: |
           # 1. Build the project (creates dist/)
           uv build
-          
+
           # 2. Publish to PyPI 
           # uv automatically uses UV_PUBLISH_TOKEN as the password with username __token__
           uv publish
