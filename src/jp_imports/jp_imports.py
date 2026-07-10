@@ -26,11 +26,15 @@ class JPTrade(TradeUtils):
     Optimized to dynamically aggregate metrics using a configuration-driven design.
     """
 
-    def __init__(self, saving_dir: str = "data/", database_file: str = "data.ddb"):
+    def __init__(
+        self,
+        saving_dir: str = "data/",
+        log_file: str = "data.log",
+    ):
         """
         Initialize the DataProcess class.
         """
-        super().__init__(saving_dir, database_file)
+        super().__init__(saving_dir, log_file)
         self.agr_file = str(
             resources.files("jp_imports").joinpath("resources/code_agr.json")
         )
