@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - hotfix-5
 
 jobs:
   Build-And-Publish:
