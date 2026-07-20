@@ -1,10 +1,9 @@
-## [1.6.0] - 2026-07-10
+## [1.6.1] - 2026-07-20
 
 ### 🐛 Bug Fixes
 
-- _(publish.yaml)_ Remove hotfix-5 branch from the list of branches to publish from
-
-## [1.2.0] - 2026-05-10
+- *(publish.yaml)* Remove hotfix-5 branch from the list of branches to publish from
+## [1.3.0] - 2026-06-08
 
 ### 💼 Other
 
