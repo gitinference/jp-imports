@@ -760,7 +760,7 @@ dev = [
 
 [[package]]
 name = "jp-tools"
-version = "1.0.3"
+version = "1.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -768,9 +768,9 @@ dependencies = [
     { name = "requests" },
     { name = "rich" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/41/99/c2ed23ba928ad463ad43bcc8a75c30069b6a720703669b4e6011f32f4784/jp_tools-1.0.3.tar.gz", hash = "sha256:406b2e83426a8b5e048f5d6c6328c3bf2c0bfcb48bc7504771602f9ae8186821", size = 222102, upload-time = "2026-07-20T16:26:27.126Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/b8/d0040c4f870925a8fa4d69c97c1ec87dfb1c1f2918043dd594d0bcb3354f/jp_tools-1.0.4.tar.gz", hash = "sha256:43e8c4f9c02801aafe37be7d4c4e20d359e84445fd887c3d817fc287f285e8dd", size = 221704, upload-time = "2026-07-20T17:49:41.999Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c3/30/f5505b7275fb3cb33a69c180c3db2e71a0587b1f9bbf59a17da77962f769/jp_tools-1.0.3-py3-none-any.whl", hash = "sha256:220d14092dc6a21448eff511bfc1b241c19036eff8d72f2f99a195a32503cc7b", size = 15665, upload-time = "2026-07-20T16:26:25.724Z" },
+    { url = "https://files.pythonhosted.org/packages/15/b3/3852cae5b8ae38a2703d26c7bad4723df09bdef871c6112dd1e16a17f305/jp_tools-1.0.4-py3-none-any.whl", hash = "sha256:8a58097db861b7467ef783bfb122a71124e07dd7dd164299cfb4d86cb03a0dba", size = 15676, upload-time = "2026-07-20T17:49:42.982Z" },
 ]
 
 [[package]]
