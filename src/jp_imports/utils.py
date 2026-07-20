@@ -53,10 +53,17 @@ class TradeUtils:
 
         if not file_path.exists() or update:
 
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            }
+
             download(
                 url="https://datos.estadisticas.pr/dataset/027ddbe1-c51c-46bf-aec3-a62d5d7e8539/resource/b8367825-a3de-41cf-8794-e42c10987b6f/download/ftrade_all_iepr.csv",
                 filename=str(temp_csv),
                 verify=False,
+                timeout=120,
+                headers=headers,
             )
             df = pl.read_csv(temp_csv, ignore_errors=True)
 
