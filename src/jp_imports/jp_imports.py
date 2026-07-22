@@ -3,7 +3,7 @@ from datetime import datetime as dt
 
 import polars as pl
 
-from .utils import TradeUtils
+from pr_imports import TradeUtils
 
 LEVEL_GROUPS = {
     "total": [],
