@@ -1,9 +1,14 @@
-## [1.6.2] - 2026-07-20
+## [1.6.4] - 2026-07-27
+
+### 🐛 Bug Fixes
+
+- *(src/jp_imports/__init__.py)* Remove unused TradeUtils from __all__ as it was replace with pr_imports
+## [1.6.3] - 2026-07-22
 
 ### 🐛 Bug Fixes
 
 - *(publish.yaml)* Remove hotfix-5 branch from the list of branches to publish from
-## [1.3.0] - 2026-06-08
+## [1.2.0] - 2026-05-10
 
 ### 💼 Other
 
