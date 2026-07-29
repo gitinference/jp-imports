@@ -1,6 +1,6 @@
 import importlib.resources as resources
 from datetime import datetime as dt
-
+from typing import Literal
 import polars as pl
 
 from pr_imports import TradeUtils
@@ -41,8 +41,8 @@ class JPTrade(TradeUtils):
 
     def process_int_jp(
         self,
-        level: str,
-        time_frame: str,
+        level: Literal["hts", "naics", "country", "total"],
+        time_frame: Literal["yearly", "fiscal", "qtr", "monthly"],
         datetime: str = "",
         agriculture_filter: bool = False,
         level_filter: str = "",
