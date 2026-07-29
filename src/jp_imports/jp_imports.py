@@ -45,12 +45,17 @@ class JPTrade(TradeUtils):
         time_frame: Literal["yearly", "fiscal", "qtr", "monthly"],
         datetime: str = "",
         agriculture_filter: bool = False,
+        source: Literal["jp", "org"] = "org",
         level_filter: str = "",
     ) -> pl.DataFrame:
         """
         Process the data for Puerto Rico Statistics Institute provided to JP.
         """
-        df = self.pull_int_jp()
+
+        if source == "org":
+            df = self.pull_int_org()
+        else:
+            df = self.pull_int_jp()
 
         if agriculture_filter:
             df = df.filter(pl.col("agri_prod") == 1)

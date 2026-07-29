@@ -1745,15 +1745,16 @@ wheels = [
 
 [[package]]
 name = "pr-imports"
-version = "0.2.2"
+version = "0.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "censusforge" },
     { name = "duckdb" },
     { name = "polars" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/ad/23/b502d936bc6bb1be76592944eab31dffa0f3339936b58e954380b59b837d/pr_imports-0.2.3.tar.gz", hash = "sha256:5276bde2ec6b8027a37ea5148b8129817f3f60a55aabc8d8ff7368e2304009bf", size = 159311, upload-time = "2026-07-29T20:41:08.513Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6c/bb/40651393dd0bc60729d99a7de905e347aead76154019376a39971e9a6563/pr_imports-0.2.2-py3-none-any.whl", hash = "sha256:53d5c93102cc0e27d80a54def6ec0e49554aa846bdb60d3c27bf65028252ad55", size = 6400, upload-time = "2026-07-29T19:54:54.947Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/91/c73c87c8229c8ce0d738ffa5c6ae39c3d93247b6bf85ec74e87be06f57e3/pr_imports-0.2.3-py3-none-any.whl", hash = "sha256:6cf2446076058ccc52948b0d0dea8bb693eaf56c7abdb2550adbb06048efa89f", size = 6353, upload-time = "2026-07-29T20:41:09.55Z" },
 ]
 
 [[package]]
