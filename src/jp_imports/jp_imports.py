@@ -296,13 +296,29 @@ class JPTrade(TradeUtils):
             .when(pl.col("unit_1").str.to_lowercase() == "doz")
             .then(pl.col("qty_1") / 0.756)
             .when(pl.col("unit_1").str.to_lowercase() == "m3")
-            .then(pl.col("qty_1") * 1560)
+            .then(pl.col("qty_1") * 353.8322)
             .when(pl.col("unit_1").str.to_lowercase() == "t")
             .then(pl.col("qty_1") * 1000)
             .when(pl.col("unit_1").str.to_lowercase() == "kts")
-            .then(pl.col("qty_1") * 1)
-            .when(pl.col("unit_1").str.to_lowercase() == "pfl")
-            .then(pl.col("qty_1") * 0.789)
+            .then(pl.col("qty_1") * 2)
+            .when(
+                (pl.col("unit_1").str.to_lowercase() == "pfl")
+                & (pl.col("hts_code").str.starts_with("220710"))
+            )  # caso 1:
+            .then(pl.col("qty_1") * 0.5556)
+            .when(
+                (pl.col("unit_1").str.to_lowercase() == "pfl")
+                & (pl.col("hts_code").str.starts_with("220710"))
+            )  # caso 2:
+            .then(pl.col("qty_1") * 2)
+            .when(
+                (pl.col("unit_1").str.to_lowercase() == "pfl")
+                & (
+                    ~pl.col("hts_code").str.starts_with("220710")
+                    & (pl.col("hts_code").str.starts_with("220710"))
+                )
+            )  # caso 3:
+            .then(pl.col("qty_1") * 2)
             .when(pl.col("unit_1").str.to_lowercase() == "gm")
             .then(pl.col("qty_1") / 1000)
             .otherwise(pl.col("qty_1")),
@@ -335,8 +351,7 @@ class JPTrade(TradeUtils):
             .then(4),
             fiscal_year=pl.when(pl.col("date").dt.month() > 6)
             .then(pl.col("date").dt.year() + 1)
-            .otherwise(pl.col("date").dt.year())
-            .alias("fiscal_year"),
+            .otherwise(pl.col("date").dt.year()),
             month=pl.col("date").dt.month(),
             year=pl.col("date").dt.year(),
         ).with_columns(qty=pl.col("conv_1") + pl.col("conv_2"))
