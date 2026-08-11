@@ -273,89 +273,72 @@ class JPTrade(TradeUtils):
         return results
 
     def conversion(self, df: pl.DataFrame) -> pl.DataFrame:
-        """
-        Convert the data to the correct units (kg).
+        """Convert the data to the correct units (kg).
 
         Parameters
         ----------
-        df: pl.LazyFrame
+        df : pl.DataFrame
             Data to convert.
 
         Returns
         -------
-        pl.LazyFrame
-            Converted data.
+        pl.DataFrame
+            Converted data with unit conversions and date fields.
         """
-
-        df = df.with_columns(pl.col("qty_1", "qty_2").fill_null(strategy="zero"))
+        # Precompute lowercase units and fill nulls efficiently
         df = df.with_columns(
-            conv_1=pl.when(pl.col("unit_1").str.to_lowercase() == "kg")
-            .then(pl.col("qty_1") * 1)
-            .when(pl.col("unit_1").str.to_lowercase() == "l")
-            .then(pl.col("qty_1") * 1)
-            .when(pl.col("unit_1").str.to_lowercase() == "doz")
-            .then(pl.col("qty_1") / 0.756)
-            .when(pl.col("unit_1").str.to_lowercase() == "m3")
-            .then(pl.col("qty_1") * 353.8322)
-            .when(pl.col("unit_1").str.to_lowercase() == "t")
-            .then(pl.col("qty_1") * 1000)
-            .when(pl.col("unit_1").str.to_lowercase() == "kts")
-            .then(pl.col("qty_1") * 2)
-            .when(
-                (pl.col("unit_1").str.to_lowercase() == "pfl")
-                & (pl.col("hts_code").str.starts_with("220710"))
-            )  # caso 1:
-            .then(pl.col("qty_1") * 0.5556)
-            .when(
-                (pl.col("unit_1").str.to_lowercase() == "pfl")
-                & (pl.col("hts_code").str.starts_with("220710"))
-            )  # caso 2:
-            .then(pl.col("qty_1") * 2)
-            .when(
-                (pl.col("unit_1").str.to_lowercase() == "pfl")
-                & (
-                    ~pl.col("hts_code").str.starts_with("220710")
-                    & (pl.col("hts_code").str.starts_with("220710"))
+            [
+                pl.col("qty_1", "qty_2").fill_null(0),
+                pl.col("unit_1").str.to_lowercase().alias("u1"),
+                pl.col("unit_2").str.to_lowercase().alias("u2"),
+            ]
+        )
+
+        return (
+            df.with_columns(
+                conv_1=pl.when(pl.col("u1").is_in(["kg", "l"]))
+                .then(pl.col("qty_1"))
+                .when(pl.col("u1") == "doz")
+                .then(pl.col("qty_1") / 0.756)
+                .when(pl.col("u1") == "m3")
+                .then(pl.col("qty_1") * 353.8322)
+                .when(pl.col("u1") == "t")
+                .then(pl.col("qty_1") * 1000)
+                .when(pl.col("u1") == "kts")
+                .then(pl.col("qty_1") * 2)
+                .when(
+                    (pl.col("u1") == "pfl")
+                    & pl.col("hts_code").str.starts_with("220710")
                 )
-            )  # caso 3:
-            .then(pl.col("qty_1") * 2)
-            .when(pl.col("unit_1").str.to_lowercase() == "gm")
-            .then(pl.col("qty_1") / 1000)
-            .otherwise(pl.col("qty_1")),
-            conv_2=pl.when(pl.col("unit_2").str.to_lowercase() == "kg")
-            .then(pl.col("qty_2") * 1)
-            .when(pl.col("unit_2").str.to_lowercase() == "l")
-            .then(pl.col("qty_2") * 1)
-            .when(pl.col("unit_2").str.to_lowercase() == "doz")
-            .then(pl.col("qty_2") / 0.756)
-            .when(pl.col("unit_2").str.to_lowercase() == "m3")
-            .then(pl.col("qty_2") * 1560)
-            .when(pl.col("unit_2").str.to_lowercase() == "t")
-            .then(pl.col("qty_2") * 1000)
-            .when(pl.col("unit_2").str.to_lowercase() == "kts")
-            .then(pl.col("qty_2") * 1)
-            .when(pl.col("unit_2").str.to_lowercase() == "pfl")
-            .then(pl.col("qty_2") * 0.789)
-            .when(pl.col("unit_2").str.to_lowercase() == "gm")
-            .then(pl.col("qty_2") / 1000)
-            .otherwise(pl.col("qty_2")),
-            qtr=pl.when(
-                (pl.col("date").dt.month() >= 1) & (pl.col("date").dt.month() <= 3)
+                .then(
+                    pl.col("qty_1") * 0.5556
+                )  # Kept primary case; adjust if case 2/3 needed distinct logic
+                .when(pl.col("u1") == "gm")
+                .then(pl.col("qty_1") / 1000)
+                .otherwise(pl.col("qty_1")),
+                conv_2=pl.when(pl.col("u2").is_in(["kg", "l", "kts"]))
+                .then(pl.col("qty_2"))
+                .when(pl.col("u2") == "doz")
+                .then(pl.col("qty_2") / 0.756)
+                .when(pl.col("u2") == "m3")
+                .then(pl.col("qty_2") * 1560)
+                .when(pl.col("u2") == "t")
+                .then(pl.col("qty_2") * 1000)
+                .when(pl.col("u2") == "pfl")
+                .then(pl.col("qty_2") * 0.789)
+                .when(pl.col("u2") == "gm")
+                .then(pl.col("qty_2") / 1000)
+                .otherwise(pl.col("qty_2")),
+                qtr=pl.col("date").dt.quarter(),
+                fiscal_year=pl.when(pl.col("date").dt.month() > 6)
+                .then(pl.col("date").dt.year() + 1)
+                .otherwise(pl.col("date").dt.year()),
+                month=pl.col("date").dt.month(),
+                year=pl.col("date").dt.year(),
             )
-            .then(1)
-            .when((pl.col("date").dt.month() >= 4) & (pl.col("date").dt.month() <= 6))
-            .then(2)
-            .when((pl.col("date").dt.month() >= 7) & (pl.col("date").dt.month() <= 9))
-            .then(3)
-            .when((pl.col("date").dt.month() >= 10) & (pl.col("date").dt.month() <= 12))
-            .then(4),
-            fiscal_year=pl.when(pl.col("date").dt.month() > 6)
-            .then(pl.col("date").dt.year() + 1)
-            .otherwise(pl.col("date").dt.year()),
-            month=pl.col("date").dt.month(),
-            year=pl.col("date").dt.year(),
-        ).with_columns(qty=pl.col("conv_1") + pl.col("conv_2"))
-        return df
+            .with_columns(qty=pl.col("conv_1") + pl.col("conv_2"))
+            .drop(["u1", "u2"])
+        )
 
     def filter_data(self, df: pl.DataFrame, filter: list) -> pl.DataFrame:
         """
