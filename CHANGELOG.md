@@ -1,3 +1,8 @@
+## [1.7.2] - 2026-08-13
+
+### 🐛 Bug Fixes
+
+- *(README.md)* Update example to reflect 3-month window for price analysis pipeline
 ## [1.7.1] - 2026-08-13
 
 ### 🚜 Refactor
