@@ -118,15 +118,9 @@ class JPTrade(TradeUtils):
 
         df = df.drop([c for c in df.columns if c.endswith("_right")])
 
-        target_metrics = ["imports", "exports", "imports_qty", "exports_qty"]
-        df = (
-            df.with_columns(pl.col(target_metrics).fill_null(0))
-            .sort(group_by_keys)
-            .with_columns(
-                net_exports=pl.col("exports") - pl.col("imports"),
-                net_qty=pl.col("exports_qty") - pl.col("imports_qty"),
-            )
-        )
+        df = df.with_columns(
+            pl.col(["imports", "exports", "imports_qty", "exports_qty"]).fill_null(0)
+        ).sort(group_by_keys)
 
         return df
 
