@@ -49,7 +49,44 @@ class JPTrade(TradeUtils):
         level_filter: str = "",
     ) -> pl.DataFrame:
         """
-        Process the data for Puerto Rico Statistics Institute provided to JP.
+        Processes international trade data from the Puerto Rico Institute of
+        Statistics for JP.
+
+        The method loads data from either the organizational source or the JP-specific
+        source, optionally filters agricultural products, applies taxonomy-level
+        filtering by HTS code, NAICS code, or country, and filters the data by year or
+        date range. The resulting data is converted to the standardized format and
+        aggregated according to the requested time frame and level.
+
+        Args:
+            level (Literal["hts", "naics", "country", "total"]): The aggregation
+                level for the processed data. Supported levels are HTS code, NAICS
+                code, country, and total.
+            time_frame (Literal["yearly", "fiscal", "qtr", "monthly"]): The time
+                period used to aggregate the data. Supported options are yearly,
+                fiscal, quarterly, and monthly.
+            datetime (str): Optional date filter. A single year can be provided
+                (e.g., ``"2024"``), or a date range in the format
+                ``"YYYY-MM-DD+YYYY-MM-DD"``. Defaults to an empty string, which
+                applies no date filter.
+            agriculture_filter (bool): If True, limits the data to agricultural
+                products where ``agri_prod`` equals 1. Defaults to False.
+            source (Literal["jp", "org"]): The source of the international trade
+                data. Use ``"org"`` for the organizational source or ``"jp"`` for
+                the JP-specific source. Defaults to ``"org"``.
+            level_filter (str): Optional prefix used to filter the selected
+                taxonomy level. For example, when ``level="hts"``, this filters
+                records whose HTS code starts with the provided value. Defaults to
+                an empty string.
+
+        Returns:
+            pl.DataFrame: A Polars DataFrame containing the filtered, converted,
+                and aggregated international trade data.
+
+        Raises:
+            ValueError: If ``level_filter`` does not match any records for the
+                selected taxonomy level, or if ``datetime`` contains an invalid
+                number of date components.
         """
 
         if source == "org":
@@ -91,7 +128,32 @@ class JPTrade(TradeUtils):
         self, time_frame: str, level: str, base: pl.DataFrame
     ) -> pl.DataFrame:
         """
-        Process the data based on dynamic groupings without logic duplication.
+        Processes and aggregates trade data according to the requested time frame
+        and classification level.
+
+        The method validates the requested grouping configuration, dynamically
+        determines the required time and classification columns, and delegates
+        filtering and aggregation to ``filter_data``. It then resolves duplicate
+        columns created during joins by coalescing null values, removes temporary
+        ``_right`` columns, fills missing trade metrics with zeros, and calculates
+        net import and export values for both monetary and quantity measures.
+
+        Args:
+            time_frame (str): The time-based grouping to apply. Must be a key
+                defined in ``TIME_GROUPS``.
+            level (str): The classification level to apply. Must be a key defined
+                in ``LEVEL_GROUPS``.
+            base (pl.DataFrame): The base Polars DataFrame containing the trade
+                data to process.
+
+        Returns:
+            pl.DataFrame: A Polars DataFrame grouped and sorted according to the
+                requested time frame and classification level, with missing trade
+                metrics filled with zero and net import/export metrics calculated.
+
+        Raises:
+            ValueError: If ``time_frame`` or ``level`` is not defined in the
+                corresponding grouping configuration.
         """
         if time_frame not in TIME_GROUPS or level not in LEVEL_GROUPS:
             raise ValueError(
@@ -134,7 +196,30 @@ class JPTrade(TradeUtils):
 
     def process_price(self, agriculture_filter: bool = False) -> pl.DataFrame:
         """
-        Calculate rolling price statistics on top of monthly item structures.
+        Calculates rolling price statistics and year-over-year price changes for
+        monthly international trade data.
+
+        The method processes monthly trade data at the HTS level, optionally limits
+        the data to agricultural products, and aggregates trade values and
+        quantities to the HS4 classification. Import and export unit prices are
+        calculated from the aggregated values and quantities. The method then
+        computes three-month rolling averages and standard deviations, price bands,
+        monthly rankings, and year-over-year changes in both prices and rankings.
+
+        Args:
+            agriculture_filter (bool): If True, limits the underlying trade data to
+                agricultural products where ``agri_prod`` equals 1. Defaults to
+                False.
+
+        Returns:
+            pl.DataFrame: A Polars DataFrame containing monthly HS4-level import and
+                export prices, rolling price statistics, price bands, rankings,
+                prior-year values, and year-over-year price and ranking changes.
+
+        Note:
+            Rolling statistics are calculated using a three-month window. Price
+            changes and rankings are also compared against values from the prior
+            year when sufficient historical data is available.
         """
         df = self.process_int_jp(
             time_frame="monthly", level="hts", agriculture_filter=agriculture_filter
@@ -275,17 +360,27 @@ class JPTrade(TradeUtils):
         return results
 
     def conversion(self, df: pl.DataFrame) -> pl.DataFrame:
-        """Convert the data to the correct units (kg).
+        """
+        Converts trade quantity data to standardized units and derives date-based
+        fields for downstream aggregation.
 
-        Parameters
-        ----------
-        df : pl.DataFrame
-            Data to convert.
+        The method normalizes quantity measurements from the primary and secondary
+        quantity fields into a common kilogram-based representation using the
+        corresponding unit codes. It handles supported units such as kilograms,
+        liters, dozens, cubic meters, metric tons, grams, and other source-specific
+        units. It also derives quarterly, fiscal-year, monthly, and calendar-year
+        fields from the source date and combines the converted quantities into a
+        single ``qty`` field.
 
-        Returns
-        -------
-        pl.DataFrame
-            Converted data with unit conversions and date fields.
+        Args:
+            df (pl.DataFrame): A Polars DataFrame containing the raw trade data.
+                The DataFrame must include quantity, unit, HTS code, and date
+                columns required for the conversion and date-field calculations.
+
+        Returns:
+            pl.DataFrame: A Polars DataFrame with standardized quantity fields,
+                derived date dimensions, and a combined ``qty`` column representing
+                the converted quantity.
         """
         # Precompute lowercase units and fill nulls efficiently
         df = df.with_columns(
@@ -344,7 +439,27 @@ class JPTrade(TradeUtils):
 
     def filter_data(self, df: pl.DataFrame, filter: list) -> pl.DataFrame:
         """
-        Filter the data based on the filter list.
+        Aggregates import and export data according to the specified grouping
+        fields and combines the resulting trade measures into a single DataFrame.
+
+        The method first excludes records without an HTS code, then separates the
+        data into imports and exports using the ``trade_id`` field. Each trade type
+        is grouped by the provided filter columns and aggregated for both trade
+        value and quantity. The resulting import and export DataFrames are then
+        joined using the grouping fields, preserving records that exist in either
+        trade type.
+
+        Args:
+            df (pl.DataFrame): A Polars DataFrame containing the trade data. The
+                DataFrame must include ``hts_code``, ``trade_id``, ``data``, and
+                ``qty`` columns.
+            filter (list): A list of column names used to group and aggregate the
+                trade data.
+
+        Returns:
+            pl.DataFrame: A Polars DataFrame containing aggregated import and export
+                values and quantities, grouped according to the provided filter
+                columns.
         """
         df = df.filter(pl.col("hts_code").is_not_null())
         imports = (
