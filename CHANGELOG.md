@@ -1,3 +1,8 @@
+## [1.7.3] - 2026-08-13
+
+### 🚜 Refactor
+
+- *(scratch.py, scratch2.py)* Migrate CSV processing to Polars and improve error handling
 ## [1.7.2] - 2026-08-13
 
 ### 🐛 Bug Fixes
