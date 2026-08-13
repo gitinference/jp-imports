@@ -1,3 +1,8 @@
+## [1.7.1] - 2026-08-13
+
+### 🚜 Refactor
+
+- *(README.md)* Update README to reflect changes in JPTrade class and new features
 ## [1.7.0] - 2026-08-13
 
 ### 🚜 Refactor
