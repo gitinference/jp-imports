@@ -98,7 +98,7 @@ result = trade.process_int_jp(
 
 ### Price Analysis Pipeline
 
-To generate rolling price metrics, unit costs, bands, and year-over-year variations at the HS4 classification level, use `process_price()`:
+To generate rolling price metrics, unit costs, bands, and year-over-year variations at the HS4 classification level over a 3 month window, use `process_price()`:
 
 ```python
 # Standard price processing
