@@ -1,3 +1,8 @@
+## [1.7.0] - 2026-08-13
+
+### 🚜 Refactor
+
+- *(jp_imports/jp_imports.py)* Add net_exports and net_imports columns to the DataFrame for better analysis
 ## [1.6.5] - 2026-07-28
 
 ### 🐛 Bug Fixes
@@ -8,7 +13,7 @@
 ### 🐛 Bug Fixes
 
 - *(src/jp_imports/__init__.py)* Remove unused TradeUtils from __all__ as it was replace with pr_imports
-## [1.6.2] - 2026-07-20
+## [1.6.3] - 2026-07-22
 
 ### 🐛 Bug Fixes
 

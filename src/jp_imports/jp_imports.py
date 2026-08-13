@@ -124,7 +124,9 @@ class JPTrade(TradeUtils):
             .sort(group_by_keys)
             .with_columns(
                 net_exports=pl.col("exports") - pl.col("imports"),
-                net_qty=pl.col("exports_qty") - pl.col("imports_qty"),
+                net_imports=pl.col("imports") - pl.col("exports"),
+                net_exports_qty=pl.col("exports_qty") - pl.col("imports_qty"),
+                net_imports_qty=pl.col("imports_qty") - pl.col("exports_qty"),
             )
         )
 
