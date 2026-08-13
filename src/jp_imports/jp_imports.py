@@ -91,6 +91,7 @@ class JPTrade(TradeUtils):
 
         if source == "org":
             df = self.pull_int_org()
+            df = self.corrections(df=df)
         else:
             df = self.pull_int_jp()
 
@@ -391,51 +392,63 @@ class JPTrade(TradeUtils):
             ]
         )
 
-        return (
-            df.with_columns(
-                conv_1=pl.when(pl.col("u1").is_in(["kg", "l"]))
-                .then(pl.col("qty_1"))
-                .when(pl.col("u1") == "doz")
-                .then(pl.col("qty_1") / 0.756)
-                .when(pl.col("u1") == "m3")
-                .then(pl.col("qty_1") * 353.8322)
-                .when(pl.col("u1") == "t")
-                .then(pl.col("qty_1") * 1000)
-                .when(pl.col("u1") == "kts")
-                .then(pl.col("qty_1") * 2)
-                .when(
-                    (pl.col("u1") == "pfl")
-                    & pl.col("hts_code").str.starts_with("220710")
-                )
-                .then(
-                    pl.col("qty_1") * 0.5556
-                )  # Kept primary case; adjust if case 2/3 needed distinct logic
-                .when(pl.col("u1") == "gm")
-                .then(pl.col("qty_1") / 1000)
-                .otherwise(pl.col("qty_1")),
-                conv_2=pl.when(pl.col("u2").is_in(["kg", "l", "kts"]))
-                .then(pl.col("qty_2"))
-                .when(pl.col("u2") == "doz")
-                .then(pl.col("qty_2") / 0.756)
-                .when(pl.col("u2") == "m3")
-                .then(pl.col("qty_2") * 1560)
-                .when(pl.col("u2") == "t")
-                .then(pl.col("qty_2") * 1000)
-                .when(pl.col("u2") == "pfl")
-                .then(pl.col("qty_2") * 0.789)
-                .when(pl.col("u2") == "gm")
-                .then(pl.col("qty_2") / 1000)
-                .otherwise(pl.col("qty_2")),
-                qtr=pl.col("date").dt.quarter(),
-                fiscal_year=pl.when(pl.col("date").dt.month() > 6)
-                .then(pl.col("date").dt.year() + 1)
-                .otherwise(pl.col("date").dt.year()),
-                month=pl.col("date").dt.month(),
-                year=pl.col("date").dt.year(),
+        return df.with_columns(
+            qty=pl.when(pl.col("u1") == "kg")
+            .then(pl.col("qty_1"))
+            .when(pl.col("u2") == "kg")
+            .then(pl.col("qty_2"))
+            .when(pl.col("u1") == "gm")
+            .then(pl.col("qty_1") / 1000)
+            .when(pl.col("u2") == "gm")
+            .then(pl.col("qty_2") / 1000)
+            .when(pl.col("u1") == "t")
+            .then(pl.col("qty_1") * 1000)
+            .when(pl.col("u2") == "t")
+            .then(pl.col("qty_2") * 1000)
+            .when(pl.col("u1") == "l")
+            .then(pl.col("qty_1") * 1)
+            .when(pl.col("u2") == "l")
+            .then(pl.col("qty_2") * 1)
+            .when(pl.col("u1") == "doz")
+            .then(pl.col("qty_1") * 0.70874)
+            .when(pl.col("u2") == "doz")
+            .then(pl.col("qty_2") * 0.70874)
+            .when(pl.col("u1") == "m3")
+            .then(pl.col("qty_1") * 353.8322)
+            .when(pl.col("u2") == "m3")
+            .then(pl.col("qty_2") * 353.8322)
+            .when(
+                (pl.col("u1") == "pfl")
+                & (pl.col("hts_code").str.slice(0, 6) == "220710")
             )
-            .with_columns(qty=pl.col("conv_1") + pl.col("conv_2"))
-            .drop(["u1", "u2"])
-        )
+            .then(pl.col("qty_1") * 0.5556)
+            .when(
+                (pl.col("u2") == "pfl")
+                & (pl.col("hts_code").str.slice(0, 6) == "220710")
+            )
+            .then(pl.col("qty_1") * 0.5556)
+            .when(
+                (pl.col("u1") == "pfl")
+                & (pl.col("hts_code").str.slice(0, 6) == "220870")
+            )
+            .then(pl.col("qty_1") * 2)
+            .when(
+                (pl.col("u2") == "pfl")
+                & (pl.col("hts_code").str.slice(0, 6) == "220870")
+            )
+            .then(pl.col("qty_1") * 2)
+            .when(pl.col("u1") == "pfl")
+            .then(pl.col("qty_1") * 1.25)
+            .when(pl.col("u2") == "pfl")
+            .then(pl.col("qty_2") * 1.25)
+            .otherwise(None),
+            qtr=pl.col("date").dt.quarter(),
+            fiscal_year=pl.when(pl.col("date").dt.month() > 6)
+            .then(pl.col("date").dt.year() + 1)
+            .otherwise(pl.col("date").dt.year()),
+            month=pl.col("date").dt.month(),
+            year=pl.col("date").dt.year(),
+        ).drop(["u1", "u2"])
 
     def filter_data(self, df: pl.DataFrame, filter: list) -> pl.DataFrame:
         """
@@ -477,3 +490,29 @@ class JPTrade(TradeUtils):
             .rename({"data": "exports", "qty": "exports_qty"})
         )
         return imports.join(exports, on=filter, how="full")
+
+    def corrections(self, df: pl.DataFrame) -> pl.DataFrame:
+        df = df.with_columns(
+            qty_1=pl.when(
+                (pl.col("date").dt.year() == 2007)
+                & (pl.col("date").dt.month() == 3)
+                & (pl.col("qty_1") == 7540542599)
+                & (pl.col("hts_code") == "2304000000")
+            )
+            .then(pl.lit(10648031))
+            .when(
+                (pl.col("date").dt.year() == 2008)
+                & (pl.col("date").dt.month() == 3)
+                & (pl.col("qty_1") == 5000000)
+                & (pl.col("hts_code") == "2714900000")
+            )
+            .then(pl.lit(50000))
+            .when(
+                (pl.col("date").dt.year() >= 2012)
+                & (pl.col("date").dt.year() <= 2017)
+                & (pl.col("unit_1") == "t")
+                & (pl.col("country") != "united states")
+                & (pl.col("hts_code") == "1004900000")
+            )
+            .then(pl.lit("kg"))
+        )
