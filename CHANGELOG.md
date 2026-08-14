@@ -1,8 +1,17 @@
-## [1.7.2] - 2026-08-13
+## [1.7.4] - 2026-08-14
+
+### 🐛 Bug Fixes
+
+- *(scratch.ipynb)* Update execution count from null to 1 for the first code cell
+## [1.7.3] - 2026-08-13
 
 ### 🐛 Bug Fixes
 
 - *(README.md)* Update example to reflect 3-month window for price analysis pipeline
+
+### 🚜 Refactor
+
+- *(scratch.py, scratch2.py)* Migrate CSV processing to Polars and improve error handling
 ## [1.7.1] - 2026-08-13
 
 ### 🚜 Refactor
@@ -28,7 +37,7 @@
 ### 🐛 Bug Fixes
 
 - *(publish.yaml)* Remove hotfix-5 branch from the list of branches to publish from
-## [1.3.0] - 2026-06-08
+## [1.2.0] - 2026-05-10
 
 ### 💼 Other
 
