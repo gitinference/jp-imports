@@ -994,7 +994,7 @@ wheels = [
 
 [[package]]
 name = "jp-imports"
-version = "1.7.3"
+version = "1.7.4"
 source = { editable = "." }
 dependencies = [
     { name = "censusforge" },
