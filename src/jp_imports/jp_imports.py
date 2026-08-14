@@ -45,6 +45,7 @@ class JPTrade(TradeUtils):
         time_frame: Literal["yearly", "fiscal", "qtr", "monthly"],
         datetime: str = "",
         agriculture_filter: bool = False,
+        corrections:bool = False,
         source: Literal["jp", "org"] = "org",
         level_filter: str = "",
     ) -> pl.DataFrame:
@@ -97,6 +98,10 @@ class JPTrade(TradeUtils):
 
         if agriculture_filter:
             df = df.filter(pl.col("agri_prod") == 1)
+
+        if corrections:
+            print(df)
+            df = self.corrections(df=df)
 
         # Unified taxonomy filtering
         if level in ["hts", "naics", "country"]:
