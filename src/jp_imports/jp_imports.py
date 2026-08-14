@@ -45,7 +45,7 @@ class JPTrade(TradeUtils):
         time_frame: Literal["yearly", "fiscal", "qtr", "monthly"],
         datetime: str = "",
         agriculture_filter: bool = False,
-        corrections:bool = False,
+        corrections: bool = False,
         source: Literal["jp", "org"] = "org",
         level_filter: str = "",
     ) -> pl.DataFrame:
@@ -92,7 +92,6 @@ class JPTrade(TradeUtils):
 
         if source == "org":
             df = self.pull_int_org()
-            df = self.corrections(df=df)
         else:
             df = self.pull_int_jp()
 
@@ -100,7 +99,6 @@ class JPTrade(TradeUtils):
             df = df.filter(pl.col("agri_prod") == 1)
 
         if corrections:
-            print(df)
             df = self.corrections(df=df)
 
         # Unified taxonomy filtering
@@ -512,12 +510,13 @@ class JPTrade(TradeUtils):
                 & (pl.col("hts_code") == "2714900000")
             )
             .then(pl.lit(50000))
-            .when(
+            .otherwise(pl.col("qty_1")),
+            unit_1=pl.when(
                 (pl.col("date").dt.year() >= 2012)
                 & (pl.col("date").dt.year() <= 2017)
                 & (pl.col("unit_1") == "t")
                 & (pl.col("country") != "united states")
                 & (pl.col("hts_code") == "1004900000")
-            )
-            .then(pl.lit("kg"))
+            ).then(pl.lit("kg")),
         )
+        return df
