@@ -429,7 +429,7 @@ class JPTrade(TradeUtils):
                 (pl.col("u2") == "pfl")
                 & (pl.col("hts_code").str.slice(0, 6) == "220710")
             )
-            .then(pl.col("qty_1") * 0.5556)
+            .then(pl.col("qty_2") * 0.5556)
             .when(
                 (pl.col("u1") == "pfl")
                 & (pl.col("hts_code").str.slice(0, 6) == "220870")
@@ -439,7 +439,7 @@ class JPTrade(TradeUtils):
                 (pl.col("u2") == "pfl")
                 & (pl.col("hts_code").str.slice(0, 6) == "220870")
             )
-            .then(pl.col("qty_1") * 2)
+            .then(pl.col("qty_2") * 2)
             .when(pl.col("u1") == "pfl")
             .then(pl.col("qty_1") * 1.25)
             .when(pl.col("u2") == "pfl")
@@ -497,7 +497,7 @@ class JPTrade(TradeUtils):
     def corrections(self, df: pl.DataFrame) -> pl.DataFrame:
         df = df.with_columns(
             qty_1=pl.when(
-                (pl.col("date").dt.year() == 2007)
+                (pl.col("date").dt.year() == 2007)  # 2007 SOYBEAN OILCAKE Correction
                 & (pl.col("date").dt.month() == 3)
                 & (pl.col("qty_1") == 7540542599)
                 & (pl.col("hts_code") == "2304000000")
@@ -505,7 +505,7 @@ class JPTrade(TradeUtils):
             .then(pl.lit(10648031))
             .when(
                 (pl.col("date").dt.year() == 2008)
-                & (pl.col("date").dt.month() == 3)
+                & (pl.col("date").dt.month() == 6)
                 & (pl.col("qty_1") == 5000000)
                 & (pl.col("hts_code") == "2714900000")
             )
@@ -517,6 +517,8 @@ class JPTrade(TradeUtils):
                 & (pl.col("unit_1") == "t")
                 & (pl.col("country") != "united states")
                 & (pl.col("hts_code") == "1004900000")
-            ).then(pl.lit("kg")),
+            )
+            .then(pl.lit("kg"))
+            .otherwise(pl.col("unit_1")),
         )
         return df
