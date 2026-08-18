@@ -226,16 +226,16 @@ class JPTrade(TradeUtils):
             year when sufficient historical data is available.
         """
         df = self.process_int_jp(
-            time_frame="monthly", level="hts", agriculture_filter=agriculture_filter
+            time_frame="monthly", level="hts", agriculture_filter=agriculture_filter, source="org", corrections=True
         )
         df = df.with_columns(pl.col("imports_qty", "exports_qty").replace(0, 1))
         df = df.with_columns(hs4=pl.col("hts_code").str.slice(0, 4))
 
         df = df.group_by(pl.col("hs4", "month", "year")).agg(
-            pl.col("imports").sum().alias("imports"),
-            pl.col("exports").sum().alias("exports"),
-            pl.col("imports_qty").sum().alias("imports_qty"),
-            pl.col("exports_qty").sum().alias("exports_qty"),
+            imports=pl.col("imports").sum(),
+            exports=pl.col("exports").sum(),
+            imports_qty=pl.col("imports_qty").sum(),
+            exports_qty=pl.col("exports_qty").sum(),
         )
 
         df = df.with_columns(
