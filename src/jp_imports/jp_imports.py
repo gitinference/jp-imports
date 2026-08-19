@@ -226,11 +226,28 @@ class JPTrade(TradeUtils):
             year when sufficient historical data is available.
         """
         df = self.process_int_jp(
-            time_frame="monthly", level="hts", agriculture_filter=agriculture_filter, source="org", corrections=True
+            time_frame="monthly",
+            level="hts",
+            agriculture_filter=agriculture_filter,
+            source="org",
+            corrections=True,
         )
-        df = df.with_columns(pl.col("imports_qty", "exports_qty").replace(0, 1))
-        df = df.with_columns(hs4=pl.col("hts_code").str.slice(0, 4))
 
+        # Prevent division by zero safely
+        df = df.with_columns(
+            pl.col("imports_qty").alias("imports_qty"),
+            pl.col("exports_qty").alias("exports_qty"),
+        ).with_columns(
+            hs4=pl.col("hts_code").str.slice(0, 4),
+            imports_qty=pl.when(pl.col("imports_qty") == 0)
+            .then(1)
+            .otherwise(pl.col("imports_qty")),
+            exports_qty=pl.when(pl.col("exports_qty") == 0)
+            .then(1)
+            .otherwise(pl.col("exports_qty")),
+        )
+
+        # Aggregate to HS4 level
         df = df.group_by(pl.col("hs4", "month", "year")).agg(
             imports=pl.col("imports").sum(),
             exports=pl.col("exports").sum(),
@@ -238,43 +255,35 @@ class JPTrade(TradeUtils):
             exports_qty=pl.col("exports_qty").sum(),
         )
 
+        # Calculate base unit prices and temporal sort index
         df = df.with_columns(
             price_imports=pl.col("imports") / pl.col("imports_qty"),
             price_exports=pl.col("exports") / pl.col("exports_qty"),
-        )
+            date=pl.datetime(pl.col("year"), pl.col("month"), 1),
+        ).sort(["hs4", "date"])
 
-        df = df.with_columns(date=pl.datetime(pl.col("year"), pl.col("month"), 1)).sort(
-            "date"
-        )
-
-        # Rolling Statistical Engine
+        # Rolling Statistical Engine & Bands
         results = df.with_columns(
-            pl.col("price_imports")
+            moving_price_imports=pl.col("price_imports")
             .rolling_mean(window_size=3, min_samples=1)
-            .over("hs4")
-            .alias("moving_price_imports"),
-            pl.col("price_exports")
+            .over("hs4"),
+            moving_price_exports=pl.col("price_exports")
             .rolling_mean(window_size=3, min_samples=1)
-            .over("hs4")
-            .alias("moving_price_exports"),
-            pl.col("price_imports")
+            .over("hs4"),
+            moving_price_imports_std=pl.col("price_imports")
             .rolling_std(window_size=3, min_samples=1)
-            .over("hs4")
-            .alias("moving_price_imports_std"),
-            pl.col("price_exports")
+            .over("hs4"),
+            moving_price_exports_std=pl.col("price_exports")
             .rolling_std(window_size=3, min_samples=1)
-            .over("hs4")
-            .alias("moving_price_exports_std"),
+            .over("hs4"),
         ).with_columns(
-            pl.col("moving_price_imports")
+            rank_imports=pl.col("moving_price_imports")
             .rank("ordinal")
             .over("date")
-            .alias("rank_imports")
             .cast(pl.Int64),
-            pl.col("moving_price_exports")
+            rank_exports=pl.col("moving_price_exports")
             .rank("ordinal")
             .over("date")
-            .alias("rank_exports")
             .cast(pl.Int64),
             upper_band_imports=pl.col("moving_price_imports")
             + 2 * pl.col("moving_price_imports_std"),
@@ -286,79 +295,30 @@ class JPTrade(TradeUtils):
             - 2 * pl.col("moving_price_exports_std"),
         )
 
-        results = df.join(results, on=["date", "hs4"], how="left", validate="1:1")
-
-        # Clean up overlap column names after explicit join validation
-        results = results.with_columns(
-            year=pl.when(pl.col("year").is_null())
-            .then(pl.col("year_right"))
-            .otherwise(pl.col("year")),
-            month=pl.when(pl.col("month").is_null())
-            .then(pl.col("month_right"))
-            .otherwise(pl.col("month")),
-            imports=pl.when(pl.col("imports").is_null())
-            .then(pl.col("imports_right"))
-            .otherwise(pl.col("imports")),
-            exports=pl.when(pl.col("exports").is_null())
-            .then(pl.col("exports_right"))
-            .otherwise(pl.col("exports")),
-            price_imports=pl.when(pl.col("price_imports").is_null())
-            .then(pl.col("price_imports_right"))
-            .otherwise(pl.col("price_imports")),
-            price_exports=pl.when(pl.col("price_exports").is_null())
-            .then(pl.col("price_exports_right"))
-            .otherwise(pl.col("price_exports")),
-            imports_qty=pl.when(pl.col("imports_qty").is_null())
-            .then(pl.col("exports_qty_right"))
-            .otherwise(pl.col("imports_qty")),
-            exports_qty=pl.when(pl.col("exports_qty").is_null())
-            .then(pl.col("exports_qty"))
-            .otherwise(pl.col("exports_qty")),
-        ).drop([c for c in results.columns if c.endswith("_right")])
-
-        # Track month shifts for sequential year-over-year deltas
-        results = results.with_columns(
-            pl.col("moving_price_imports")
-            .pct_change()
-            .over("date", "hs4")
-            .alias("pct_change_imports")
-        ).sort(by=["date", "hs4"])
-
-        results = results.with_columns(
-            pl.when(pl.col("date").dt.year() > 1)
-            .then(pl.col("moving_price_imports").shift(12))
-            .otherwise(None)
-            .alias("prev_year_imports"),
-            pl.when(pl.col("date").dt.year() > 1)
-            .then(pl.col("moving_price_exports").shift(12))
-            .otherwise(None)
-            .alias("prev_year_exports"),
-            pl.when(pl.col("date").dt.year() > 1)
-            .then(pl.col("rank_imports").shift(12))
-            .otherwise(None)
-            .alias("prev_year_rank_imports"),
-            pl.when(pl.col("date").dt.year() > 1)
-            .then(pl.col("rank_exports").shift(12))
-            .otherwise(None)
-            .alias("prev_year_rank_exports"),
+        # Year-over-Year calculations (shifting 12 periods back per HS4 group)
+        results = results.sort(by=["hs4", "date"]).with_columns(
+            prev_year_imports=pl.col("moving_price_imports").shift(12).over("hs4"),
+            prev_year_exports=pl.col("moving_price_exports").shift(12).over("hs4"),
+            prev_year_rank_imports=pl.col("rank_imports").shift(12).over("hs4"),
+            prev_year_rank_exports=pl.col("rank_exports").shift(12).over("hs4"),
         )
 
+        # Final YoY percentage and rank change metrics
         results = results.with_columns(
-            (
+            pct_change_imports_year_over_year=(
                 (pl.col("moving_price_imports") - pl.col("prev_year_imports"))
                 / pl.col("prev_year_imports")
-            ).alias("pct_change_imports_year_over_year"),
-            (
+            ),
+            pct_change_exports_year_over_year=(
                 (pl.col("moving_price_exports") - pl.col("prev_year_exports"))
                 / pl.col("prev_year_exports")
-            ).alias("pct_change_exports_year_over_year"),
-            (pl.col("rank_imports") - pl.col("prev_year_rank_imports")).alias(
-                "rank_imports_change_year_over_year"
             ),
-            (
-                pl.col("rank_exports").cast(pl.Int64)
-                - pl.col("prev_year_rank_exports").cast(pl.Int64)
-            ).alias("rank_exports_change_year_over_year"),
+            rank_imports_change_year_over_year=(
+                pl.col("rank_imports") - pl.col("prev_year_rank_imports")
+            ),
+            rank_exports_change_year_over_year=(
+                pl.col("rank_exports") - pl.col("prev_year_rank_exports")
+            ),
         ).sort(by=["date", "hs4"])
 
         return results
